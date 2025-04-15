@@ -1,0 +1,14 @@
+services:
+  firefly-bot:
+    build: .
+    container_name: firefly_bot
+    env_file:
+      - .env
+    networks:
+      - firefly_net
+    restart: unless-stopped
+
+networks:
+  firefly_net:
+    external: true
+    name: fireflyiii_firefly_iii
