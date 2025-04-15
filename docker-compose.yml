@@ -2,6 +2,7 @@ services:
   firefly-bot:
     build: .
     container_name: firefly_bot
+    command: python run.py
     env_file:
       - .env
     networks:
