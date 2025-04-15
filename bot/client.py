@@ -1,13 +1,21 @@
+import logging
 import requests
 from bot.config import FIREFLY_URL, FIREFLY_TOKEN
 
 HEADERS = {"Authorization": f"Bearer {FIREFLY_TOKEN}"}
 
+def safe_get(endpoint, params=None):
+    try:
+        response = requests.get(f"{FIREFLY_URL}{endpoint}", headers=HEADERS, params=params)
+        response.raise_for_status()
+        return response.json().get("data", [])
+    except Exception as e:
+        logging.error(f"Error en GET {endpoint}: {e}")
+        return []
+
 def get_accounts(account_type=None):
-    url = f"{FIREFLY_URL}/api/v1/accounts"
-    if account_type:
-        url += f"?type={account_type}"
-    return requests.get(url, headers=HEADERS).json().get("data", [])
+    params = {"type": account_type} if account_type else None
+    return safe_get("/api/v1/accounts", params)
 
 def create_transaction(payload):
     return requests.post(f"{FIREFLY_URL}/api/v1/transactions", json=payload, headers=HEADERS)
