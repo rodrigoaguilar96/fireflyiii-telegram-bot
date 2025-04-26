@@ -1,6 +1,6 @@
 services:
   firefly-bot:
-    build: .
+    image: rja96/fireflyiii-telegram-bot:latest
     container_name: firefly_bot
     command: python run.py
     env_file:
@@ -8,8 +8,6 @@ services:
     networks:
       - firefly_net
     restart: unless-stopped
-    labels:
-      - com.centurylinklabs.watchtower.enable=false
 
 networks:
   firefly_net:

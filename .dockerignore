@@ -1,6 +1,30 @@
-# Ignorar archivos sensibles y no necesarios en el contenedor
+# Archivos de configuración y entorno
 .env
+*.env
+
+# Compilados de Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Logs
 *.log
+
+# Bases de datos locales
 *.sqlite
+*.db
+
+# Carpetas y archivos de editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de control de Git (opcional si no querés copiar metadata innecesaria)
+.git
+.gitignore
+
+# Otros
+.DS_Store
+*.bak
