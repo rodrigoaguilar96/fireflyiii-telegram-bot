@@ -3,7 +3,9 @@ name: Build and Push Docker image
 on:
   push:
     branches:
-      - main
+      - feature/gh-actions
+
+  workflow_dispatch:  # Habilita correrlo manualmente desde GitHub Actions
 
 jobs:
   build-and-push:
@@ -22,11 +24,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Extract branch name
+        id: extract_branch
+        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
       - name: Build and Push Docker images
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            rja96/fireflyiii-telegram-bot:latest
-            rja96/fireflyiii-telegram-bot:${{ github.sha }}
+            rja96/fireflyiii-telegram-bot:${{ env.BRANCH_NAME }}
