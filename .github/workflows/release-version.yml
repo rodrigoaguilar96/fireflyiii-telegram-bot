@@ -20,10 +20,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create Tag
+      - name: Configure Git
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+
+      - name: Create Git Tag
+        run: |
           git tag ${{ github.event.inputs.version }}
           git push origin ${{ github.event.inputs.version }}
 
@@ -35,3 +38,10 @@ jobs:
           body: ${{ github.event.inputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Build and Push Docker Workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: docker-publish.yml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: refs/heads/main
