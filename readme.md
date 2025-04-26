@@ -76,4 +76,10 @@ docker-compose up -d
 
 ---
 
+## 📚 Documentación adicional
+
+- [Changelog](./CHANGELOG.md): Historial completo de versiones y cambios importantes.
+
+---
+
 Hecho con ❤️ por [Rodrigo Aguilar](https://github.com/rodrigoaguilar96)
