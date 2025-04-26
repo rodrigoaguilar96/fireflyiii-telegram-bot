@@ -1,0 +1,58 @@
+name: Build and Push Docker image
+
+on:
+  push:
+    tags:
+      - 'v*'  # Build automático si pusheás un tag de versión
+  release:
+    types: [published]  # Build también cuando publicás un release
+  workflow_dispatch:
+    inputs:
+      custom_tag:
+        description: 'Optional custom tag for manual builds (e.g., v1.0.2)'
+        required: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Determine tag
+        id: get_tag
+        run: |
+          if [[ -n "${{ github.event.inputs.custom_tag }}" ]]; then
+            TAG=${{ github.event.inputs.custom_tag }}
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG=${GITHUB_REF#refs/tags/}
+          elif [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
+            TAG=${GITHUB_REF#refs/tags/}
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            TAG=main
+          else
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            BRANCH_NAME_SAFE=${BRANCH_NAME//\//-}
+            TAG=$BRANCH_NAME_SAFE
+          fi
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Build and Push Docker image (multiarch)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            rja96/fireflyiii-telegram-bot:${{ env.TAG }}
+            ${{ startsWith(env.TAG, 'v') && 'rja96/fireflyiii-telegram-bot:latest' || '' }}

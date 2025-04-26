@@ -1,0 +1,6 @@
+services:
+  firefly-bot:
+    build:
+      context: .
+    image: rja96/fireflyiii-telegram-bot:dev
+    container_name: firefly_bot_dev

@@ -1,0 +1,15 @@
+services:
+  firefly-bot:
+    image: rja96/fireflyiii-telegram-bot:latest
+    container_name: firefly_bot
+    command: python run.py
+    env_file:
+      - .env
+    networks:
+      - firefly_net
+    restart: unless-stopped
+
+networks:
+  firefly_net:
+    external: true
+    name: fireflyiii_firefly_iii
