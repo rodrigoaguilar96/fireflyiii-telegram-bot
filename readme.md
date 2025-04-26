@@ -4,6 +4,35 @@ Este bot te permite interactuar con tu instancia de [Firefly III](https://www.fi
 
 ---
 
+
+## 📦 Instalación rápida
+
+### Usando Docker (recomendado)
+
+1. **Pull de la imagen oficial**
+
+```bash
+docker pull rja96/fireflyiii-telegram-bot:latest
+```
+
+2. **Configurar tu .env**
+```bash
+cp .env.example .env
+```
+Completar las variables necesarias:
+```env
+TELEGRAM_BOT_TOKEN=...
+FIREFLY_III_API_URL=http://firefly_iii_core:8080
+FIREFLY_III_API_TOKEN=...
+HIDE_ACCOUNTS=Cuenta1,Cuenta2
+LOG_LEVEL=INFO  # Puede ser DEBUG, INFO, WARNING, ERROR o CRITICAL
+```
+
+3. **Levantar el bot**
+```bash
+docker-compose up -d
+```
+---
 ## ✨ Características
 
 - 📋 Menú interactivo con botones en Telegram.
@@ -15,68 +44,12 @@ Este bot te permite interactuar con tu instancia de [Firefly III](https://www.fi
 
 ---
 
-## 📁 Estructura del proyecto
-
-```
-fireflyiii_telegram_bot/
-├── bot/                   # Código fuente del bot
-│   ├── handlers/          # Handlers organizados por comando
-│   ├── client.py          # Cliente Firefly III
-│   ├── config.py          # Variables de entorno
-│   ├── constants.py       # Constantes del bot
-│   └── main.py            # Punto de entrada de la app
-├── run.py                 # Ejecuta el bot
-├── requirements.txt
-├── docker-compose.yml
-├── Dockerfile
-├── .env.example
-└── readme.md
-```
-
----
-
-## ⚙️ Requisitos
+## ⚙️ Requisitos para desarrollo local
 
 - Python 3.11+
 - Docker + Docker Compose
 - Cuenta de Telegram con un bot creado en [@BotFather](https://t.me/BotFather)
 - Instancia de Firefly III corriendo (idealmente vía Docker)
-
----
-
-## 🛠️ Instalación
-
-1. **Cloná el repo**
-
-```bash
-git clone https://github.com/rodrigoaguilar96/fireflyiii-telegram-bot.git
-cd fireflyiii-telegram-bot
-```
-
-2. **Creá tu archivo `.env`**
-
-```bash
-cp .env.example .env
-```
-
-Editá las variables necesarias con tus propios valores:
-
-```env
-TELEGRAM_BOT_TOKEN=...
-FIREFLY_III_API_URL=http://firefly_iii_core:8080
-FIREFLY_III_API_TOKEN=...
-HIDE_ACCOUNTS=Cuenta1,Cuenta2
-LOG_LEVEL=INFO  # Puede ser DEBUG, INFO, WARNING, ERROR o CRITICAL
-```
-
-3. **Levantá el bot**
-
-```bash
-docker-compose build
-docker-compose up -d
-```
-
----
 
 ## 🧪 Comandos disponibles
 
@@ -97,7 +70,9 @@ docker-compose up -d
 - [x] Estructura modular escalable
 - [x] Registro de gastos y consultas por cuenta
 - [x] Docker + `.env` seguro
+- [x] Release automation vía GitHub Actions
 - [ ] Agregar presupuestos, etiquetas y categorías
+- [ ] Mejorar validaciones de inputs
 
 ---
 
