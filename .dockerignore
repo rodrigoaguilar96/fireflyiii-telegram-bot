@@ -1,0 +1,6 @@
+# Ignorar archivos sensibles y no necesarios en el contenedor
+.env
+__pycache__/
+*.pyc
+*.log
+*.sqlite

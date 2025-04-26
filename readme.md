@@ -1,66 +1,104 @@
-# Firefly III Telegram Bot
+# 🤖 Firefly III Telegram Bot
 
-Este bot te permite interactuar con tu instancia de Firefly III directamente desde Telegram para consultar cuentas, ver movimientos y registrar gastos de forma simple y rápida.
+Este bot te permite interactuar con tu instancia de [Firefly III](https://www.firefly-iii.org/) directamente desde Telegram para consultar cuentas, ver movimientos y registrar gastos fácilmente.
 
-## ✨ Características principales
+---
 
-- `/assets`: Lista todas las cuentas de tipo "asset" junto con su balance actual.
-- `/expense <monto> "<descripcion>" <cuenta_origen> <cuenta_destino>`: Registra un gasto en Firefly.
-  - Ejemplo: `/expense 11.12 "burger King" wise comida`
-- `/cuenta <nombre> <N>`: Muestra el balance y los últimos N movimientos de la cuenta indicada.
-  - Ejemplo: `/cuenta wise 5`
+## ✨ Características
 
-## 📂 Requisitos
+- 📋 Menú interactivo con botones en Telegram.
+- 💼 `/assets`: Lista cuentas de tipo "asset".
+- 💸 `/expense <monto> "<desc>" <origen> <destino>`: Registra un gasto.
+- 📈 `/cuenta <nombre> <N>`: Muestra movimientos recientes de una cuenta.
+- 🧠 Flujo con botones para crear gastos paso a paso.
+- 🔐 Cuentas ocultas personalizables vía `.env`.
 
-- Python 3.10+
+---
+
+## 📁 Estructura del proyecto
+
+```
+fireflyiii_telegram_bot/
+├── bot/                   # Código fuente del bot
+│   ├── handlers/          # Handlers organizados por comando
+│   ├── client.py          # Cliente Firefly III
+│   ├── config.py          # Variables de entorno
+│   ├── constants.py       # Constantes del bot
+│   └── main.py            # Punto de entrada de la app
+├── run.py                 # Ejecuta el bot
+├── requirements.txt
+├── docker-compose.yml
+├── Dockerfile
+├── .env.example
+└── readme.md
+```
+
+---
+
+## ⚙️ Requisitos
+
+- Python 3.11+
+- Docker + Docker Compose
 - Cuenta de Telegram con un bot creado en [@BotFather](https://t.me/BotFather)
-- Instancia de Firefly III funcionando (puede estar en Docker)
+- Instancia de Firefly III corriendo (idealmente vía Docker)
 
-## ♻️ Instalación
+---
 
-1. Cloná el repo:
+## 🛠️ Instalación
+
+1. **Cloná el repo**
 
 ```bash
 git clone https://github.com/rodrigoaguilar96/fireflyiii-telegram-bot.git
 cd fireflyiii-telegram-bot
 ```
 
-2. Copiá y configurá tu archivo `.env`:
-
-```env
-TELEGRAM_BOT_TOKEN=tu_token_del_bot
-FIREFLY_III_API_URL=http://firefly_iii_core:8080
-FIREFLY_III_API_TOKEN=tu_token_personal_de_firefly
-```
-
-3. Levantá el bot con Docker:
+2. **Creá tu archivo `.env`**
 
 ```bash
-docker compose up -d --build
+cp .env.example .env
 ```
 
+Editá las variables necesarias con tus propios valores:
 
-## 🔐 Variables de entorno
+```env
+TELEGRAM_BOT_TOKEN=...
+FIREFLY_III_API_URL=http://firefly_iii_core:8080
+FIREFLY_III_API_TOKEN=...
+HIDE_ACCOUNTS=Cuenta1,Cuenta2
+LOG_LEVEL=INFO  # Puede ser DEBUG, INFO, WARNING, ERROR o CRITICAL
+```
 
-| Variable               | Descripción                                    |
-|------------------------|-----------------------------------------------|
-| `TELEGRAM_BOT_TOKEN`   | Token del bot de Telegram                     |
-| `FIREFLY_III_API_URL`  | URL de la API de Firefly III (puede ser local) |
-| `FIREFLY_III_API_TOKEN`| Token de acceso personal generado en Firefly |
+3. **Levantá el bot**
 
-
-## 📝 Roadmap
-
-- [x] Listar cuentas de tipo asset
-- [x] Registrar gastos con descripción y cuentas
-- [x] Consultar movimientos por cuenta
-- [ ] Agregar botones interactivos (inline buttons)
-- [ ] Comandos para ver presupuestos, etiquetas y categorías
-- [ ] Exportar movimientos como CSV o PDF
+```bash
+docker-compose build
+docker-compose up -d
+```
 
 ---
 
-Bot creado por [Rodrigo Aguilar](https://github.com/rodrigoaguilar96) con ayuda de ChatGPT.
+## 🧪 Comandos disponibles
 
-❤️ Si este proyecto te resulta útil, no dudes en darle una estrella al repo.
+```
+/start            → Muestra el menú principal
+/menu             → Reabre el menú
+/assets           → Lista cuentas de tipo asset
+/cuenta <nombre> <N> → Muestra los últimos N movimientos de una cuenta
+/expense ...      → Registra un gasto (manual)
+/expenseButtom    → Registra gasto paso a paso con botones
+/cancel           → Cancela el flujo actual
+```
 
+---
+
+## 🚧 Roadmap personal
+
+- [x] Estructura modular escalable
+- [x] Registro de gastos y consultas por cuenta
+- [x] Docker + `.env` seguro
+- [ ] Agregar presupuestos, etiquetas y categorías
+
+---
+
+Hecho con ❤️ por [Rodrigo Aguilar](https://github.com/rodrigoaguilar96)
