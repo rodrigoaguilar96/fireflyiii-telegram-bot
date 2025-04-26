@@ -3,9 +3,9 @@ name: Build and Push Docker image
 on:
   push:
     branches:
-      - feature/gh-actions
+      - '**'  # Para cualquier branch
 
-  workflow_dispatch:  # Permite ejecutar manualmente
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -24,12 +24,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract branch name (safe for Docker tag)
-        id: extract_branch
+      - name: Determine tag
+        id: get_tag
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
           BRANCH_NAME_SAFE=${BRANCH_NAME//\//-}
-          echo "BRANCH_NAME_SAFE=$BRANCH_NAME_SAFE" >> $GITHUB_ENV
+          if [ "$BRANCH_NAME" == "main" ]; then
+            echo "TAG=latest" >> $GITHUB_ENV
+          else
+            echo "TAG=$BRANCH_NAME_SAFE" >> $GITHUB_ENV
+          fi
 
       - name: Build and Push Docker image
         uses: docker/build-push-action@v5
@@ -37,4 +41,4 @@ jobs:
           context: .
           push: true
           tags: |
-            rja96/fireflyiii-telegram-bot:${{ env.BRANCH_NAME_SAFE }}
+            rja96/fireflyiii-telegram-bot:${{ env.TAG }}
