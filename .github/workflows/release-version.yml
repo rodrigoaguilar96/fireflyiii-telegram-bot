@@ -45,3 +45,4 @@ jobs:
           workflow: docker-publish.yml
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: refs/heads/main
+          inputs: '{"custom_tag": "${{ github.event.inputs.version }}"}'
