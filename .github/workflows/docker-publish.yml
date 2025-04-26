@@ -6,7 +6,11 @@ on:
       - 'v*'  # Build automático si pusheás un tag de versión
   release:
     types: [published]  # Build también cuando publicás un release
-  workflow_dispatch:    # Permite ejecutarlo manualmente
+  workflow_dispatch:
+    inputs:
+      custom_tag:
+        description: 'Optional custom tag for manual builds (e.g., v1.0.2)'
+        required: false
 
 jobs:
   build-and-push:
@@ -28,7 +32,9 @@ jobs:
       - name: Determine tag
         id: get_tag
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          if [[ -n "${{ github.event.inputs.custom_tag }}" ]]; then
+            TAG=${{ github.event.inputs.custom_tag }}
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG=${GITHUB_REF#refs/tags/}
           elif [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
             TAG=${GITHUB_REF#refs/tags/}
@@ -46,7 +52,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64  # 🚀 Soporte multi-arquitectura
+          platforms: linux/amd64,linux/arm64
           tags: |
             rja96/fireflyiii-telegram-bot:${{ env.TAG }}
             ${{ startsWith(env.TAG, 'v') && 'rja96/fireflyiii-telegram-bot:latest' || '' }}
