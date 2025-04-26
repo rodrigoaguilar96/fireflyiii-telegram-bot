@@ -5,7 +5,7 @@ on:
     branches:
       - feature/gh-actions
 
-  workflow_dispatch:  # Habilita correrlo manualmente desde GitHub Actions
+  workflow_dispatch:  # Permite ejecutar manualmente
 
 jobs:
   build-and-push:
@@ -24,14 +24,17 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract branch name
+      - name: Extract branch name (safe for Docker tag)
         id: extract_branch
-        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          BRANCH_NAME_SAFE=${BRANCH_NAME//\//-}
+          echo "BRANCH_NAME_SAFE=$BRANCH_NAME_SAFE" >> $GITHUB_ENV
 
-      - name: Build and Push Docker images
+      - name: Build and Push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            rja96/fireflyiii-telegram-bot:${{ env.BRANCH_NAME }}
+            rja96/fireflyiii-telegram-bot:${{ env.BRANCH_NAME_SAFE }}
