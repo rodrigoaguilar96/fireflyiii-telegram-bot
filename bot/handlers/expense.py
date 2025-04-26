@@ -7,7 +7,9 @@ from bot.client import get_accounts, create_transaction, create_account
 from bot.constants import SELECT_ORIGIN, ENTER_AMOUNT_DESC, SELECT_DESTINATION, ENTER_NEW_DEST_NAME
 from bot.config import OCULTAR_CUENTAS_LOWER
 
+# Función para iniciar flujo de gasto con botones
 async def start_expense_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info("👉 Entró a start_expense_button")
     accounts = get_accounts(account_type="asset")
     keyboard = []
     for a in accounts:
@@ -28,18 +30,22 @@ async def start_expense_button(update: Update, context: ContextTypes.DEFAULT_TYP
     logging.warning("🧪 En start_expense_button: mostrando cuentas de origen")
     return SELECT_ORIGIN
 
+# Función para seleccionar cuenta origen
 async def select_origin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logging.warning(f"🧪 Entró a select_origin con callback: {update.callback_query.data}")
+    logging.info(f"👉 Entró a select_origin - callback data: {update.callback_query.data}")
     query = update.callback_query
     await query.answer()
     context.user_data['origin'] = query.data.replace("origin::", "")
+    logging.info(f"✅ Origin seteado en user_data: {context.user_data.get('origin')}")
     await query.message.reply_text(
         "Ahora escribí el monto y la descripción.\nEjemplo: 13.99 hamburguesa",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar", callback_data="cancelar")]])
     )
     return ENTER_AMOUNT_DESC
 
+# Función para escribir monto y descripción
 async def enter_amount_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info("👉 Entró a enter_amount_description")
     text = update.message.text.strip()
     try:
         amount_str, *description_parts = text.split()
@@ -65,7 +71,9 @@ async def enter_amount_description(update: Update, context: ContextTypes.DEFAULT
     await update.message.reply_text("Seleccioná cuenta de destino (opcional):", reply_markup=reply_markup)
     return SELECT_DESTINATION
 
+# Función para seleccionar cuenta destino
 async def select_destination(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info(f"👉 Entró a select_destination - callback data: {update.callback_query.data}")
     query = update.callback_query
     await query.answer()
     dest = query.data.replace("dest::", "")
@@ -80,7 +88,9 @@ async def select_destination(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data['destination'] = dest
     return await create_expense_transaction(query.message, context)
 
+# Función para crear cuenta destino nueva
 async def enter_new_dest_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info("👉 Entró a enter_new_dest_name")
     new_dest_name = update.message.text.strip()
     try:
         result = create_account(new_dest_name)
@@ -93,7 +103,9 @@ async def enter_new_dest_name(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text("No se pudo crear la nueva cuenta.")
         return ConversationHandler.END
 
+# Función para registrar el gasto final
 async def create_expense_transaction(message_source, context):
+    logging.info("👉 Entró a create_expense_transaction")
     accounts = get_accounts()
     source_id = destination_id = None
 
@@ -126,6 +138,7 @@ async def create_expense_transaction(message_source, context):
     }
 
     try:
+        logging.info(f"📦 Payload a enviar: {payload}")
         response = create_transaction(payload)
         response.raise_for_status()
         await message_source.reply_text("✅ Gasto creado correctamente")
@@ -134,6 +147,7 @@ async def create_expense_transaction(message_source, context):
         await message_source.reply_text("❌ Error al registrar el gasto.")
     return ConversationHandler.END
 
+# Función para modo rápido: /expense <monto> "descripcion" origen [destino]
 async def quick_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         args = context.args
@@ -142,7 +156,7 @@ async def quick_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         amount = float(args[0].replace(',', '.'))
-        description = args[1].strip('"')
+        description = args[1].strip('"“”')
         origin = args[2].lower()
         destination = args[3].lower() if len(args) > 3 else None
 
@@ -191,6 +205,7 @@ async def quick_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.error(f"Error en /expense: {e}")
         await update.message.reply_text("❌ Error al procesar el gasto.")
 
+# Función cancelar
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.warning("⚠️ Entró a cancel()")
     if update.message:
@@ -199,6 +214,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.callback_query.message.reply_text("❌ Operación cancelada.")
     return ConversationHandler.END
 
+# Armamos el ConversationHandler
 expense_conv = ConversationHandler(
     entry_points=[
         CommandHandler("expenseButtom", start_expense_button),
@@ -217,6 +233,7 @@ expense_conv = ConversationHandler(
     per_chat=True
 )
 
+# Y exportamos los handlers
 expense_handlers = [
     CommandHandler("expense", quick_expense),
     expense_conv

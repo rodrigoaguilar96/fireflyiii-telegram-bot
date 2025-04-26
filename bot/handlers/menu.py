@@ -20,8 +20,6 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
     if data == "menu_assets":
         await list_assets(query, context)
-    elif data == "menu_expense":
-        await start_expense_button(update.callback_query, context)
     elif data == "menu_cuenta":
         await query.message.reply_text("Usá el comando:\n/cuenta <nombre> <N>")
     elif data == "menu_commands":
@@ -30,5 +28,5 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
 menu_handlers = [
     CommandHandler("start", start_menu),
     CommandHandler("menu", start_menu),
-    CallbackQueryHandler(handle_menu_selection, pattern="^menu_.*")
+    CallbackQueryHandler(handle_menu_selection, pattern="^(menu_assets|menu_cuenta|menu_commands)$")
 ]
