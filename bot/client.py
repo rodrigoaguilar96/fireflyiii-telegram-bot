@@ -14,7 +14,9 @@ def safe_get(endpoint, params=None):
         return []
 
 def get_accounts(account_type=None):
-    params = {"type": account_type} if account_type else None
+    params = {"limit": 1000}
+    if account_type:
+        params["type"] = account_type
     return safe_get("/api/v1/accounts", params)
 
 def create_transaction(payload):
