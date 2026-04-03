@@ -587,45 +587,88 @@ async def _create_expense_transaction(message_source, context: ContextTypes.DEFA
 
 # ─── Quick Expense Command ─────────────────────────────────
 
+USAGE_TEXT = (
+    "💸 *Registrar gasto rápido*\n\n"
+    "Uso:\n"
+    "`/gasto <monto> <descripción> <origen> [categoría] [destino]`\n\n"
+    "Ejemplos:\n"
+    "`/gasto 20 burgerking tarjeta comida`\n"
+    "`/gasto 13.99 uber transporte tarjeta credito`\n"
+    "`/gasto 5.50 cafe efectivo`\n\n"
+    "Notas:\n"
+    "• `<origen>` es obligatorio — debe ser una cuenta existente\n"
+    "• `[categoría]` es opcional — si no existe, se omite\n"
+    "• `[destino]` es opcional — si no existe, se omite\n"
+    "• Los nombres de cuentas y categorías no distinguen mayúsculas"
+)
+
+
 async def quick_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Quick expense: /expense <amount> <description> [category]"""
+    """Quick expense: /gasto <monto> <desc> <origen> [categoria] [destino]"""
     if not await require_auth(update, context):
         return
 
     args = context.args
-    if len(args) < 2:
+
+    # Sin argumentos → mostrar instrucciones de uso
+    if not args:
+        await update.message.reply_text(USAGE_TEXT, parse_mode="Markdown")
+        return
+
+    # Mínimo: monto + descripción + origen
+    if len(args) < 3:
         await update.message.reply_text(
-            "Uso: `/expense <monto> <descripción> [categoría]`\n"
-            "Ejemplo: `/expense 13.99 hamburguesa comida`",
+            "❌ Faltan argumentos. Uso:\n"
+            "`/gasto <monto> <descripción> <origen> [categoría] [destino]`\n\n"
+            "Ejemplo: `/gasto 20 burgerking tarjeta comida`",
             parse_mode="Markdown",
         )
         return
 
     amount = validate_amount(args[0])
     if amount is None or amount <= 0:
-        await update.message.reply_text("Monto inválido. Usá un número positivo.")
+        await update.message.reply_text("❌ Monto inválido. Usá un número positivo.")
         return
 
     description = sanitize_text(args[1], MAX_DESCRIPTION_LENGTH)
-    category = sanitize_text(args[2]) if len(args) > 2 else None
+    origin = args[2].lower()
+    category = sanitize_text(args[3]) if len(args) > 3 else None
+    destination = args[4].lower() if len(args) > 4 else None
 
-    # Use last origin or default
-    origin = context.user_data.get("last_origin")
-    if not origin:
-        await update.message.reply_text(
-            "No tenés una cuenta de origen predeterminada. "
-            "Usá /expenseButton la primera vez para configurarla."
-        )
-        return
-
+    # Buscar cuenta de origen (obligatoria)
     accounts = get_accounts()
     source_account = _find_account_by_name(accounts, origin)
     if not source_account:
         await update.message.reply_text(
-            f"Cuenta de origen '{origin}' no encontrada. "
-            "Usá /expenseButton para seleccionar otra."
+            f"❌ Cuenta de origen '{origin}' no encontrada.\n"
+            f"Usá /assets para ver tus cuentas disponibles."
         )
         return
+
+    # Buscar categoría (opcional — si no existe, se omite)
+    category_id = None
+    category_applied = False
+    if category:
+        categories = get_categories()
+        for cat in categories:
+            if cat["attributes"]["name"].lower() == category.lower():
+                category_id = cat["id"]
+                category_applied = True
+                break
+        if not category_applied:
+            logger.info(f"Category '{category}' not found, skipping")
+
+    # Buscar destino (opcional — si no existe, se omite)
+    destination_id = None
+    destination_applied = False
+    if destination:
+        dest_account = _find_account_by_name(accounts, destination)
+        if dest_account:
+            destination_id = dest_account["id"]
+            destination_applied = True
+            logger.info(f"Destination '{destination}' found: {destination_id}")
+        else:
+            logger.info(f"Destination '{destination}' not found, skipping")
 
     # Build payload
     today = datetime.now(pytz.timezone(TIMEZONE)).isoformat()
@@ -637,27 +680,28 @@ async def quick_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "date": today,
     }
 
-    if category:
-        # Try to find existing category
-        categories = get_categories()
-        cat_found = False
-        for cat in categories:
-            if cat["attributes"]["name"].lower() == category.lower():
-                transaction["category_id"] = cat["id"]
-                cat_found = True
-                break
-        if not cat_found:
-            transaction["category_name"] = category  # Auto-create
+    if category_id:
+        transaction["category_id"] = category_id
+    if destination_id:
+        transaction["destination_id"] = destination_id
 
     payload = {"transactions": [transaction]}
 
     try:
         response = create_transaction(payload)
         response.raise_for_status()
-        await update.message.reply_text(
-            f"✅ Gasto registrado: {amount:.2f} — {description}"
-        )
-        # Remember origin for next time
+
+        # Build confirmation with details
+        lines = [
+            f"✅ Gasto registrado: *{amount:.2f}* — {description}",
+            f"🏦 Origen: {source_account['attributes']['name']}",
+        ]
+        if category_applied:
+            lines.append(f"📂 Categoría: {category}")
+        if destination_applied:
+            lines.append(f"🎯 Destino: {destination}")
+
+        await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
         context.user_data["last_origin"] = origin
     except Exception as e:
         logger.error(f"Error in quick_expense: {e}")
@@ -729,11 +773,12 @@ expense_conv = ConversationHandler(
         CallbackQueryHandler(cancel, pattern="^cancelar$"),
     ],
     per_chat=True,
+    per_message=False,  # Default — mixed CallbackQueryHandler + MessageHandler
 )
 
 # Export handlers
 expense_handlers = [
-    CommandHandler("expense", quick_expense),
+    CommandHandler("gasto", quick_expense),
     CommandHandler("refresh", refresh_cache_command),
     expense_conv,
 ]

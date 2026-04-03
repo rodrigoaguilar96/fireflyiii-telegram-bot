@@ -56,7 +56,7 @@ async def list_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/menu - Reabre el menú de opciones",
         "/assets - Lista tus cuentas de activo",
         "/cuenta <nombre> <N> - Muestra movimientos de una cuenta",
-        "/expense <monto> <desc> - Registro rápido de gasto",
+        "/gasto <monto> <desc> <origen> [cat] [dest] - Registro rápido de gasto",
         "/expenseButton - Registro de gasto paso a paso con botones",
         "/cancel - Cancela el flujo actual",
         "/refresh - Refresca el caché de cuentas/categorías",

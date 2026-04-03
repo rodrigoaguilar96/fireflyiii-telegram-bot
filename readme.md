@@ -39,9 +39,9 @@ docker-compose up -d
 ## ✨ Características
 
 - 📋 Menú interactivo con botones en Telegram.
-- 💸 **Registro rápido**: `/expense 13.99 hamburguesa comida` — registra un gasto en un solo mensaje con categoría.
+- 💸 **Registro rápido**: `/gasto 20 burgerking tarjeta comida` — registra un gasto en un solo mensaje.
 - 🧠 **Flujo paso a paso**: origen → monto/descripción → destino → categoría → presupuesto → tags → confirmación.
-- 📂 **Categorías**: seleccioná o asigná categorías a tus gastos (se auto-crean si no existen).
+- 📂 **Categorías**: seleccioná o asigná categorías a tus gastos.
 - 📊 **Presupuestos**: asigná presupuestos a tus gastos.
 - 🏷️ **Tags**: agregá tags como `comida, delivery, almuerzo`.
 - 🕐 **Destinos recientes**: las cuentas de destino más usadas aparecen primero.
@@ -67,7 +67,7 @@ docker-compose up -d
 /menu             → Reabre el menú
 /assets           → Lista cuentas de tipo asset
 /cuenta <nombre> <N> → Muestra los últimos N movimientos de una cuenta
-/expense <monto> <desc> [categoría] → Registro rápido de gasto
+/gasto <monto> <desc> <origen> [cat] [dest] → Registro rápido de gasto
 /expenseButton    → Registro de gasto paso a paso con botones
 /cancel           → Cancela el flujo actual
 /refresh          → Refresca el caché de cuentas/categorías
@@ -75,13 +75,20 @@ docker-compose up -d
 
 ### Flujo rápido recomendado (día a día)
 
-La forma más rápida de registrar un gasto es con `/expense`:
+La forma más rápida de registrar un gasto es con `/gasto`:
 
 ```
-/expense 13.99 hamburguesa comida
+/gasto 20 burgerking tarjeta comida
 ```
 
-Esto registra un gasto de 13.99 con descripción "hamburguesa" y categoría "comida" usando tu última cuenta de origen. La primera vez usá `/expenseButton` para configurar tu cuenta de origen predeterminada.
+Esto registra un gasto de 20 con descripción "burgerking", cuenta de origen "tarjeta" y categoría "comida". El origen es obligatorio y debe ser una cuenta existente. La categoría y el destino son opcionales — si no existen, se omiten.
+
+Ejemplos:
+```
+/gasto 20 burgerking tarjeta comida
+/gasto 13.99 uber tarjeta credito transporte tarjeta
+/gasto 5.50 cafe efectivo
+```
 
 ### Flujo paso a paso (completo)
 
