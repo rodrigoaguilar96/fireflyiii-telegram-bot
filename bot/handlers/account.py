@@ -1,16 +1,19 @@
 import logging
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes, CallbackQueryHandler
+
 from bot.client import get_accounts, safe_get
-from bot.config import FIREFLY_URL
+from bot.handlers.common import format_account_display
 from bot.handlers.menu import handle_menu_selection
 
 
 async def show_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show account info and recent transactions via /cuenta command."""
     parts = update.message.text.strip().split()
     if len(parts) < 2:
-        await update.message.reply_text("Uso correcto: /cuenta <nombre> <N>")
+        await update.message.reply_text("Uso: /cuenta <nombre> [N]")
         return
+
     name = parts[1]
     try:
         n = int(parts[2]) if len(parts) > 2 else 3
@@ -18,82 +21,61 @@ async def show_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Cantidad de movimientos inválida.")
         return
 
-    try:
-        accounts = get_accounts()
-        account_id = None
-        balance = "0.00"
-        for a in accounts:
-            if a["attributes"]["name"].lower() == name.lower():
-                account_id = a["id"]
-                balance = a["attributes"].get("current_balance", "0.00")
-                break
+    result = await format_account_display(name, limit=n)
+    if result:
+        # Split long messages (Telegram limit: 4096 chars)
+        for chunk in _split_message(result):
+            await update.message.reply_text(chunk, parse_mode="Markdown")
+    else:
+        await update.message.reply_text("Cuenta no encontrada.")
 
-        if not account_id:
-            await update.message.reply_text("Cuenta no encontrada.")
-            return
-
-        txs = safe_get(f"/api/v1/accounts/{account_id}/transactions", params={"limit": n})
-
-        lines = [f"cuenta: {name}", f"balance: {float(balance):.2f}", "movimientos:"]
-        for t in txs:
-            for s in t["attributes"].get("transactions", []):
-                fecha = s.get("date", "").split("T")[0]
-                desc = s.get("description", "-")
-                monto = float(s.get("amount", "0.00"))
-                lines.append(f"{fecha} {desc} {monto:.2f}")
-
-        await update.message.reply_text("\n".join(lines))
-    except Exception as e:
-        logging.error(f"Error en /cuenta: {e}")
-        await update.message.reply_text("Error al obtener los datos de la cuenta.")
 
 async def show_account_from_callback(query, context, name):
-    try:
-        accounts = get_accounts()
-        account_id = None
-        balance = "0.00"
-        for a in accounts:
-            if a["attributes"]["name"].lower() == name.lower():
-                account_id = a["id"]
-                balance = a["attributes"].get("current_balance", "0.00")
-                break
+    """Show account info from a callback query button."""
+    result = await format_account_display(name, limit=3)
+    if result:
+        for chunk in _split_message(result):
+            await query.message.reply_text(chunk, parse_mode="Markdown")
+    else:
+        await query.message.reply_text("Cuenta no encontrada.")
 
-        if not account_id:
-            await query.message.reply_text("Cuenta no encontrada.")
-            return
-
-        txs = safe_get(f"/api/v1/accounts/{account_id}/transactions", params={"limit": 3})
-
-        lines = [f"cuenta: {name}", f"balance: {float(balance):.2f}", "movimientos:"]
-        for t in txs:
-            for s in t["attributes"].get("transactions", []):
-                fecha = s.get("date", "").split("T")[0]
-                desc = s.get("description", "-")
-                monto = float(s.get("amount", "0.00"))
-                lines.append(f"{fecha} {desc} {monto:.2f}")
-
-        await query.message.reply_text("\n".join(lines))
-    except Exception as e:
-        logging.error(f"Error en show_account_from_callback: {e}")
-        await query.message.reply_text("No se pudo obtener la info de la cuenta.")
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Catch-all callback handler for non-conversation callbacks."""
     query = update.callback_query
     await query.answer()
     data = query.data
 
-    # 🔒 Ignorar eventos reservados para el flujo de expense
-    if data.startswith("origin::") or data.startswith("dest::") or data.startswith("cancelar"):
-        logging.warning(f"🔁 Ignorando callback reservado para ConversationHandler: {data}")
+    # Ignore callbacks reserved for ConversationHandlers
+    if data.startswith(("origin::", "dest::", "cat::", "budget::", "cancelar")):
+        logging.debug(f"Ignoring reserved callback: {data}")
         return
 
-    logging.warning(f"📦 handle_callback captó: {data}")
+    logging.debug(f"Handling callback: {data}")
 
     if data.startswith("cuenta::"):
         cuenta_name = data.replace("cuenta::", "")
         await show_account_from_callback(query, context, cuenta_name)
     elif data.startswith("menu_"):
         await handle_menu_selection(update, context)
+
+
+def _split_message(text: str, max_length: int = 4000) -> list[str]:
+    """Split a message into chunks that fit within Telegram's limit."""
+    if len(text) <= max_length:
+        return [text]
+    chunks = []
+    while text:
+        if len(text) <= max_length:
+            chunks.append(text)
+            break
+        # Split at last newline before max_length
+        split_at = text.rfind("\n", 0, max_length)
+        if split_at == -1:
+            split_at = max_length
+        chunks.append(text[:split_at])
+        text = text[split_at:].lstrip("\n")
+    return chunks
 
 
 account_handlers = [
