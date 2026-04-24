@@ -11,3 +11,7 @@ venv/
 
 # SDD / Agent skills
 .atl/
+.DS_Store
+
+# Local Codex plugins
+plugins/
