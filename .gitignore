@@ -11,3 +11,4 @@ venv/
 
 # SDD / Agent skills
 .atl/
+.DS_Store
