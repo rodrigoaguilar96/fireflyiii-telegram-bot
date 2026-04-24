@@ -59,6 +59,17 @@ def get_accounts(account_type: Optional[str] = None, use_cache: bool = True) -> 
         params["type"] = account_type
 
     accounts = safe_get("/api/v1/accounts", params)
+    if account_type and not accounts:
+        logging.warning(
+            "No accounts returned with API filter type=%s; falling back to local filter",
+            account_type,
+        )
+        all_accounts = safe_get("/api/v1/accounts", {"limit": 1000})
+        accounts = [
+            account
+            for account in all_accounts
+            if account.get("attributes", {}).get("type") == account_type
+        ]
     if use_cache and accounts:
         cache.set(cache_key, accounts)
     return accounts
