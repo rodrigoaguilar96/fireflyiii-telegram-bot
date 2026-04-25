@@ -57,6 +57,11 @@ def _get_recent_destinations(context: ContextTypes.DEFAULT_TYPE) -> list[str]:
     return context.user_data.get("recent_destinations", [])
 
 
+def _chunk_buttons(buttons: list[InlineKeyboardButton], columns: int = 2) -> list[list]:
+    """Group buttons into rows with the requested number of columns."""
+    return [buttons[i : i + columns] for i in range(0, len(buttons), columns)]
+
+
 def _add_recent_destination(context: ContextTypes.DEFAULT_TYPE, name: str) -> None:
     """Add a destination to the recent list (most recent first, deduplicated)."""
     recent = context.user_data.get("recent_destinations", [])
@@ -97,24 +102,30 @@ def _build_destination_keyboard(
             keyboard.append(
                 [InlineKeyboardButton("🕐 Recientes", callback_data="__separator__")]
             )
+            recent_buttons = []
             for a in recent_accounts:
                 name = a["attributes"]["name"]
-                keyboard.append(
-                    [InlineKeyboardButton(f"🕐 {name}", callback_data=f"dest::{name.lower()}")]
+                recent_buttons.append(
+                    InlineKeyboardButton(
+                        f"🕐 {name}", callback_data=f"dest::{name.lower()}"
+                    )
                 )
+            keyboard.extend(_chunk_buttons(recent_buttons))
             keyboard.append(
                 [InlineKeyboardButton("── Todas las cuentas ──", callback_data="__separator__")]
             )
 
     # All other destinations
     recent_names_lower = [r.lower() for r in recent]
+    destination_buttons = []
     for a in accounts:
         name = a["attributes"]["name"]
         if name.lower() in recent_names_lower:
             continue  # Already shown in recent section
-        keyboard.append(
-            [InlineKeyboardButton(name, callback_data=f"dest::{name.lower()}")]
+        destination_buttons.append(
+            InlineKeyboardButton(name, callback_data=f"dest::{name.lower()}")
         )
+    keyboard.extend(_chunk_buttons(destination_buttons))
 
     # Skip option
     keyboard.append(
@@ -214,26 +225,27 @@ async def start_expense_button(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data.clear()
 
     accounts = get_accounts(account_type="asset")
-    keyboard = []
+    account_buttons = []
     for a in accounts:
         name = a["attributes"]["name"]
         if name.lower() in OCULTAR_CUENTAS_LOWER:
             continue
-        keyboard.append(
-            [InlineKeyboardButton(name, callback_data=f"origin::{name.lower()}")]
+        account_buttons.append(
+            InlineKeyboardButton(name, callback_data=f"origin::{name.lower()}")
         )
 
     # Remember last used origin
     last_origin = context.user_data.get("last_origin")
     if last_origin:
-        keyboard.insert(
+        account_buttons.insert(
             0,
-            [InlineKeyboardButton(
+            InlineKeyboardButton(
                 f"🕐 Última: {last_origin}",
                 callback_data=f"origin::{last_origin.lower()}"
-            )],
+            ),
         )
 
+    keyboard = _chunk_buttons(account_buttons)
     reply_markup = _get_keyboard_with_cancel(keyboard)
 
     msg_source = update.message or update.callback_query.message
