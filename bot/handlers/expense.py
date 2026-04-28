@@ -268,8 +268,7 @@ async def select_origin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.message.reply_text(
         "Ahora escribí el monto y la descripción.\n"
-        "Ejemplo: `13.99 hamburguesa`\n\n"
-        "También podés escribir solo el monto y agregar la descripción después.",
+        "Ejemplo: `13.99 hamburguesa`",
         reply_markup=_get_keyboard_with_cancel([]),
     )
     return ENTER_AMOUNT_DESC
@@ -293,15 +292,13 @@ async def enter_amount_description(update: Update, context: ContextTypes.DEFAULT
 
     if not description:
         await update.message.reply_text(
-            "Falta la descripción. Escribila ahora:"
+            "Falta la descripción. Escribí el monto y la descripción juntos.\n"
+            "Ejemplo: `13.99 hamburguesa`"
         )
-        context.user_data["amount"] = amount
-        context.user_data["awaiting_description"] = True
         return ENTER_AMOUNT_DESC
 
     context.user_data["amount"] = amount
     context.user_data["description"] = description
-    context.user_data.pop("awaiting_description", None)
 
     # Show destination selection
     accounts = get_accounts(account_type="expense")
@@ -445,11 +442,24 @@ async def _show_tag_input(message_source, context: ContextTypes.DEFAULT_TYPE):
     """Prompt for tags input."""
     await message_source.reply_text(
         "Escribí tags separados por coma (opcional).\n"
-        "Ejemplo: `comida, delivery, almuerzo`\n"
-        "O escribí `skip` para continuar sin tags.",
-        reply_markup=_get_keyboard_with_cancel([]),
+        "Ejemplo: `comida, delivery, almuerzo`\n\n"
+        "O tocá el botón para continuar sin tags.",
+        reply_markup=_get_keyboard_with_cancel(
+            [[InlineKeyboardButton("⏭️ Sin tags", callback_data="tags::none")]]
+        ),
     )
     return ENTER_TAGS
+
+
+async def skip_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Skip tags from the inline button."""
+    query = update.callback_query
+    await query.answer()
+
+    context.user_data["tags"] = []
+    logger.info("No tags entered")
+
+    return await _show_confirmation(query.message, context)
 
 
 async def enter_tags(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -774,6 +784,7 @@ expense_conv = ConversationHandler(
             CallbackQueryHandler(select_budget, pattern="^budget::"),
         ],
         ENTER_TAGS: [
+            CallbackQueryHandler(skip_tags, pattern="^tags::none$"),
             MessageHandler(filters.TEXT & ~filters.COMMAND, enter_tags),
         ],
         CONFIRM_EXPENSE: [
