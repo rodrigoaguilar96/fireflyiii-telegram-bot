@@ -20,5 +20,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       - name: Run compile check
-        run: PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m py_compile run.py bot/*.py bot/handlers/*.py
+        run: PYTHONPYCACHEPREFIX=/tmp/pycache python -m py_compile run.py bot/*.py bot/handlers/*.py tests/*.py
+
+      - name: Run tests
+        run: pytest
