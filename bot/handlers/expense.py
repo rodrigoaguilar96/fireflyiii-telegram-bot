@@ -16,6 +16,7 @@ from telegram.ext import (
 
 from bot.client import (
     get_accounts,
+    get_bills,
     get_categories,
     get_budgets,
     create_transaction,
@@ -30,6 +31,7 @@ from bot.constants import (
     ENTER_NEW_DEST_NAME,
     SELECT_CATEGORY,
     SELECT_BUDGET,
+    SELECT_BILL,
     ENTER_TAGS,
     CONFIRM_EXPENSE,
 )
@@ -174,6 +176,54 @@ def _build_budget_keyboard(budgets: list) -> list[list]:
     return keyboard
 
 
+def _get_usable_active_bills(bills: list) -> list[dict]:
+    """Keep only active bills with usable identifier and name."""
+    usable_bills = []
+    for bill in bills:
+        if not isinstance(bill, dict):
+            continue
+
+        bill_id = bill.get("id")
+        attributes = bill.get("attributes")
+        if not bill_id or not isinstance(attributes, dict):
+            continue
+
+        name = attributes.get("name")
+        if not isinstance(name, str) or not name.strip():
+            continue
+
+        if attributes.get("active") is not True:
+            continue
+
+        usable_bills.append(
+            {
+                "id": str(bill_id),
+                "attributes": {"name": name.strip(), "active": True},
+            }
+        )
+
+    return usable_bills
+
+
+def _build_bill_keyboard(bills: list[dict]) -> list[list]:
+    """Build bill selection keyboard using existing multi-column style."""
+    bill_buttons = [
+        InlineKeyboardButton(
+            bill["attributes"]["name"], callback_data=f"bill::{bill['id']}"
+        )
+        for bill in bills[:20]
+    ]
+    keyboard = _chunk_buttons(bill_buttons, 2)
+    keyboard.append(
+        [
+            InlineKeyboardButton(
+                "⏭️ Sin suscripción/factura", callback_data="bill::none"
+            )
+        ]
+    )
+    return keyboard
+
+
 def _build_confirmation_summary(context: dict) -> str:
     """Build a human-readable summary of the expense for confirmation."""
     lines = [
@@ -201,6 +251,10 @@ def _build_confirmation_summary(context: dict) -> str:
         lines.append(f"📊 Presupuesto: {budget}")
     else:
         lines.append("📊 Presupuesto: _Sin presupuesto_")
+
+    bill_name = context.get("bill_name")
+    if bill_name:
+        lines.append(f"🧾 Suscripción/Factura: {bill_name}")
 
     tags = context.get("tags", [])
     if tags:
@@ -408,7 +462,7 @@ async def _show_budget_selection(message_source, context: ContextTypes.DEFAULT_T
     if not budgets:
         logger.debug("No budgets found, skipping budget selection")
         context.user_data["budget"] = None
-        return await _show_tag_input(message_source, context)
+        return await _show_bill_selection(message_source, context)
 
     keyboard = _build_budget_keyboard(budgets)
     reply_markup = _get_keyboard_with_cancel(keyboard)
@@ -429,12 +483,61 @@ async def select_budget(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if budget == "none":
         context.user_data["budget"] = None
+        context.user_data.pop("budget_id", None)
         logger.info("No budget selected")
     else:
         context.user_data["budget"] = budget
         context.user_data["budget_id"] = query.data  # Store full data for ID lookup
         logger.info(f"Budget selected: {budget}")
 
+    return await _show_bill_selection(query.message, context)
+
+
+async def _show_bill_selection(message_source, context: ContextTypes.DEFAULT_TYPE):
+    """Show bill selection keyboard or fall through to tags on unusable data."""
+    bills = get_bills()
+    usable_bills = _get_usable_active_bills(bills)
+
+    if not usable_bills:
+        logger.info("No usable active bills found, skipping bill selection")
+        context.user_data.pop("bill_id", None)
+        context.user_data.pop("bill_name", None)
+        return await _show_tag_input(message_source, context)
+
+    keyboard = _build_bill_keyboard(usable_bills)
+    reply_markup = _get_keyboard_with_cancel(keyboard)
+
+    await message_source.reply_text(
+        "Seleccioná una suscripción o factura (opcional):",
+        reply_markup=reply_markup,
+    )
+    return SELECT_BILL
+
+
+async def select_bill(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle bill selection or skip action."""
+    query = update.callback_query
+    await query.answer()
+
+    bill_value = query.data.replace("bill::", "", 1)
+
+    if bill_value == "none":
+        context.user_data.pop("bill_id", None)
+        context.user_data.pop("bill_name", None)
+        logger.info("No bill selected")
+        return await _show_tag_input(query.message, context)
+
+    usable_bills = _get_usable_active_bills(get_bills())
+    selected_bill = next((bill for bill in usable_bills if bill["id"] == bill_value), None)
+    if not selected_bill:
+        logger.warning("Selected bill not found in usable active bill list: %s", bill_value)
+        context.user_data.pop("bill_id", None)
+        context.user_data.pop("bill_name", None)
+        return await _show_tag_input(query.message, context)
+
+    context.user_data["bill_id"] = selected_bill["id"]
+    context.user_data["bill_name"] = selected_bill["attributes"]["name"]
+    logger.info("Bill selected: %s (%s)", selected_bill["attributes"]["name"], selected_bill["id"])
     return await _show_tag_input(query.message, context)
 
 
@@ -576,6 +679,10 @@ async def _create_expense_transaction(message_source, context: ContextTypes.DEFA
 
     if budget_id:
         transaction["budget_id"] = budget_id
+
+    bill_id = ud.get("bill_id")
+    if bill_id:
+        transaction["bill_id"] = bill_id
 
     tags = ud.get("tags", [])
     if tags:
@@ -782,6 +889,9 @@ expense_conv = ConversationHandler(
         ],
         SELECT_BUDGET: [
             CallbackQueryHandler(select_budget, pattern="^budget::"),
+        ],
+        SELECT_BILL: [
+            CallbackQueryHandler(select_bill, pattern="^bill::"),
         ],
         ENTER_TAGS: [
             CallbackQueryHandler(skip_tags, pattern="^tags::none$"),
