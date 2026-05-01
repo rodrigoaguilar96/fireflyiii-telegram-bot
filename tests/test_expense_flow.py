@@ -7,6 +7,7 @@ from bot.constants import (
     SELECT_DESTINATION,
     SELECT_CATEGORY,
     SELECT_BUDGET,
+    SELECT_BILL,
     ENTER_TAGS,
     CONFIRM_EXPENSE,
 )
@@ -22,7 +23,7 @@ from tests.conftest import (
 )
 
 
-def patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets):
+def patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, bills=None):
     def fake_get_accounts(account_type=None, use_cache=True):
         if account_type == "asset":
             return [a for a in all_accounts if a["attributes"]["type"] == "asset"]
@@ -33,13 +34,14 @@ def patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, 
     monkeypatch.setattr(expense, "get_accounts", fake_get_accounts)
     monkeypatch.setattr(expense, "get_categories", lambda: categories)
     monkeypatch.setattr(expense, "get_budgets", lambda: budgets)
+    monkeypatch.setattr(expense, "get_bills", lambda use_cache=True: bills or [])
 
 
 @pytest.mark.asyncio
 async def test_menu_to_expense_full_flow_preserves_multi_word_description(
-    monkeypatch, all_accounts, expense_accounts, categories, budgets
+    monkeypatch, all_accounts, expense_accounts, categories, budgets, bills
 ):
-    patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets)
+    patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, bills)
     created_payloads = []
     monkeypatch.setattr(
         expense,
@@ -82,13 +84,22 @@ async def test_menu_to_expense_full_flow_preserves_multi_word_description(
 
     budget_query = FakeCallbackQuery("budget::comida")
     state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
+    assert state == SELECT_BILL
+    assert "internet hogar" in button_texts(budget_query.message.replies[-1])
+    assert "⏭️ Sin suscripción/factura" in button_texts(budget_query.message.replies[-1])
+
+    bill_query = FakeCallbackQuery("bill::bill-1")
+    state = await expense.select_bill(FakeUpdate(callback_query=bill_query), context)
     assert state == ENTER_TAGS
-    assert "⏭️ Sin tags" in button_texts(budget_query.message.replies[-1])
+    assert context.user_data["bill_id"] == "bill-1"
+    assert context.user_data["bill_name"] == "internet hogar"
+    assert "⏭️ Sin tags" in button_texts(bill_query.message.replies[-1])
 
     tags_query = FakeCallbackQuery("tags::none")
     state = await expense.skip_tags(FakeUpdate(callback_query=tags_query), context)
     assert state == CONFIRM_EXPENSE
     assert "supermercado pingo doce" in tags_query.message.replies[-1]["text"]
+    assert "internet hogar" in tags_query.message.replies[-1]["text"]
 
     confirm_query = FakeCallbackQuery("confirm_expense")
     state = await expense.confirm_expense(FakeUpdate(callback_query=confirm_query), context)
@@ -103,6 +114,7 @@ async def test_menu_to_expense_full_flow_preserves_multi_word_description(
     assert transaction["destination_id"] == "expense-1"
     assert transaction["category_id"] == "cat-1"
     assert transaction["budget_id"] == "budget-1"
+    assert transaction["bill_id"] == "bill-1"
     assert "date" in transaction
     assert "Gasto registrado correctamente" in confirm_query.message.replies[-1]["text"]
 
@@ -140,7 +152,54 @@ async def test_expense_button_flow_allows_optional_skips(
     assert "destination_id" not in transaction
     assert "category_id" not in transaction
     assert "budget_id" not in transaction
+    assert "bill_id" not in transaction
     assert "tags" not in transaction
+
+
+@pytest.mark.asyncio
+async def test_select_budget_routes_to_bill_selection_and_skip(monkeypatch, all_accounts, expense_accounts, categories, budgets, bills):
+    patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, bills)
+
+    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+
+    budget_query = FakeCallbackQuery("budget::none")
+    state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
+
+    assert state == SELECT_BILL
+    assert "⏭️ Sin suscripción/factura" in button_texts(budget_query.message.replies[-1])
+
+    skip_query = FakeCallbackQuery("bill::none")
+    state = await expense.select_bill(FakeUpdate(callback_query=skip_query), context)
+
+    assert state == ENTER_TAGS
+    assert "bill_id" not in context.user_data
+    assert "bill_name" not in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_bill_selection_falls_back_to_tags_when_no_usable_active_bills(monkeypatch, all_accounts, expense_accounts, categories, budgets, mixed_bills):
+    patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, mixed_bills[2:])
+
+    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+
+    budget_query = FakeCallbackQuery("budget::comida")
+    state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
+
+    assert state == ENTER_TAGS
+    assert "⏭️ Sin tags" in button_texts(budget_query.message.replies[-1])
+
+
+@pytest.mark.asyncio
+async def test_bill_selection_falls_back_to_tags_when_api_fails(monkeypatch, all_accounts, expense_accounts, categories, budgets):
+    patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, [])
+
+    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+
+    budget_query = FakeCallbackQuery("budget::comida")
+    state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
+
+    assert state == ENTER_TAGS
+    assert "⏭️ Sin tags" in button_texts(budget_query.message.replies[-1])
 
 
 @pytest.mark.asyncio
@@ -253,6 +312,7 @@ async def test_quick_expense_creates_minimal_transaction(monkeypatch, all_accoun
     assert transaction["amount"] == "12.0"
     assert transaction["description"] == "cafe"
     assert transaction["source_id"] == "asset-1"
+    assert "bill_id" not in transaction
     assert "Gasto registrado" in message.replies[-1]["text"]
 
 

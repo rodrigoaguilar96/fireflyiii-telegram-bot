@@ -81,6 +81,23 @@ def test_refresh_cache_clears_cache(monkeypatch):
     assert local_cache.get("x") is None
 
 
+def test_get_bills_uses_cache(monkeypatch, bills):
+    local_cache = TTLCache(default_ttl=60)
+    monkeypatch.setattr(client, "cache", local_cache)
+
+    calls = []
+
+    def fake_safe_get(endpoint, params=None):
+        calls.append((endpoint, params))
+        return bills
+
+    monkeypatch.setattr(client, "safe_get", fake_safe_get)
+
+    assert client.get_bills() == bills
+    assert client.get_bills() == bills
+    assert calls == [("/api/v1/bills", {"limit": 100})]
+
+
 @pytest.mark.asyncio
 async def test_auth_open_allowed_and_denied(monkeypatch):
     monkeypatch.setattr(middleware, "ALLOWED_USER_IDS", [])
@@ -108,7 +125,7 @@ def test_validation_helpers():
     assert middleware.validate_amount("nope") is None
 
 
-def test_keyboard_and_summary_helpers(expense_accounts):
+def test_keyboard_and_summary_helpers(expense_accounts, mixed_bills):
     context = FakeContext(user_data={"recent_destinations": ["uber"]})
 
     destination_rows = expense._build_destination_keyboard(expense_accounts, context)
@@ -118,6 +135,12 @@ def test_keyboard_and_summary_helpers(expense_accounts):
 
     category_buttons = [button.text for row in expense._build_category_keyboard([]) for button in row]
     assert "⏭️ Sin categoría" in category_buttons
+
+    usable_bills = expense._get_usable_active_bills(mixed_bills)
+    assert [bill["id"] for bill in usable_bills] == ["bill-1", "bill-2"]
+
+    bill_keyboard = expense._build_bill_keyboard(usable_bills)
+    assert [button.text for button in bill_keyboard[-1]] == ["⏭️ Sin suscripción/factura"]
 
     markup = expense._get_keyboard_with_cancel([])
     assert "❌ Cancelar" in [button.text for row in markup.inline_keyboard for button in row]
@@ -130,8 +153,10 @@ def test_keyboard_and_summary_helpers(expense_accounts):
             "destination": None,
             "category": None,
             "budget": None,
+            "bill_name": "internet hogar",
             "tags": [],
         }
     )
     assert "supermercado pingo doce" in summary
     assert "_Sin cuenta destino_" in summary
+    assert "internet hogar" in summary

@@ -99,6 +99,20 @@ def get_budgets() -> list:
     return budgets
 
 
+def get_bills(use_cache: bool = True) -> list:
+    """Get all bills from Firefly III with optional caching."""
+    cache_key = "bills"
+    if use_cache:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+    bills = safe_get("/api/v1/bills", params={"limit": 100})
+    if use_cache and bills:
+        cache.set(cache_key, bills)
+    return bills
+
+
 def create_transaction(payload: dict) -> requests.Response:
     """Create a new transaction in Firefly III."""
     return safe_post("/api/v1/transactions", payload)

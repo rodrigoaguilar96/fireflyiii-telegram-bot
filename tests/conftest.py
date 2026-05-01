@@ -106,6 +106,25 @@ def budgets():
 
 
 @pytest.fixture
+def bills():
+    return [
+        {"id": "bill-1", "attributes": {"name": "internet hogar", "active": True}},
+        {"id": "bill-2", "attributes": {"name": "gym", "active": True}},
+    ]
+
+
+@pytest.fixture
+def mixed_bills(bills):
+    return bills + [
+        {"id": "bill-3", "attributes": {"name": "old streaming", "active": False}},
+        {"id": "bill-4", "attributes": {"name": "", "active": True}},
+        {"id": None, "attributes": {"name": "broken id", "active": True}},
+        {"id": "bill-5", "attributes": "bad"},
+        "invalid-entry",
+    ]
+
+
+@pytest.fixture
 def transactions():
     return [
         {

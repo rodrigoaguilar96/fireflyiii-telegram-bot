@@ -12,6 +12,7 @@ async def test_start_and_menu_show_main_keyboard():
 
     buttons = button_texts(message.replies[-1])
     assert "💸 Registrar gasto" in buttons
+    assert "🔁 Transferir" in buttons
     assert "💼 Ver cuentas" in buttons
     assert "📊 Ver cuenta + movimientos" in buttons
     assert "📋 Ver comandos" in buttons
@@ -117,3 +118,27 @@ async def test_account_callback_and_catch_all(monkeypatch):
     reserved = FakeCallbackQuery("origin::tarjeta")
     await account.handle_callback(FakeUpdate(callback_query=reserved), FakeContext())
     assert reserved.message.replies == []
+
+
+@pytest.mark.asyncio
+async def test_account_callback_ignores_transfer_callbacks(monkeypatch):
+    called = False
+
+    async def callback_display(name, limit=3):
+        nonlocal called
+        called = True
+        return "account ok"
+
+    monkeypatch.setattr(account, "format_account_display", callback_display)
+
+    for data in (
+        "transfer_source::asset-1",
+        "transfer_destination::asset-2",
+        "confirm_transfer",
+        "cancel_transfer",
+    ):
+        query = FakeCallbackQuery(data)
+        await account.handle_callback(FakeUpdate(callback_query=query), FakeContext())
+        assert query.message.replies == []
+
+    assert called is False

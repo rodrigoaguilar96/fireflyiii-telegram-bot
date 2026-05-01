@@ -6,6 +6,7 @@ from telegram.ext import ApplicationBuilder, CallbackQueryHandler
 from bot.config import TELEGRAM_TOKEN, LOG_LEVEL, validate_env
 from bot.handlers.menu import menu_handlers
 from bot.handlers.expense import expense_handlers
+from bot.handlers.transfer import transfer_handlers
 from bot.handlers.account import account_handlers, handle_callback
 from bot.handlers.assets import assets_handlers
 from bot.middleware import require_auth
@@ -38,7 +39,7 @@ def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     # Register all conversation handlers first
-    for handler in menu_handlers + expense_handlers + account_handlers + assets_handlers:
+    for handler in menu_handlers + expense_handlers + transfer_handlers + account_handlers + assets_handlers:
         app.add_handler(handler)
 
     # Catch-all callback handler (must be last)

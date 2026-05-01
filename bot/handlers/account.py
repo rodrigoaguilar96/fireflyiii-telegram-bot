@@ -47,7 +47,15 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     # Ignore callbacks reserved for ConversationHandlers
-    if data.startswith(("origin::", "dest::", "cat::", "budget::", "cancelar")):
+    if data.startswith((
+        "origin::",
+        "dest::",
+        "cat::",
+        "budget::",
+        "cancelar",
+        "transfer_source::",
+        "transfer_destination::",
+    )) or data in ("confirm_transfer", "cancel_transfer"):
         logging.debug(f"Ignoring reserved callback: {data}")
         return
 
