@@ -137,9 +137,10 @@ def test_keyboard_and_summary_helpers(expense_accounts, mixed_bills):
     assert "⏭️ Sin categoría" in category_buttons
 
     usable_bills = expense._get_usable_active_bills(mixed_bills)
-    assert [bill["id"] for bill in usable_bills] == ["bill-1", "bill-2"]
+    assert [bill["id"] for bill in usable_bills] == ["bill-2", "bill-1"]
 
     bill_keyboard = expense._build_bill_keyboard(usable_bills)
+    assert [button.text for button in bill_keyboard[0]] == ["gym", "internet hogar"]
     assert [button.text for button in bill_keyboard[-1]] == ["⏭️ Sin suscripción/factura"]
 
     markup = expense._get_keyboard_with_cancel([])
