@@ -202,7 +202,10 @@ def _get_usable_active_bills(bills: list) -> list[dict]:
             }
         )
 
-    return usable_bills
+    return sorted(
+        usable_bills,
+        key=lambda bill: bill["attributes"]["name"].casefold(),
+    )
 
 
 def _build_bill_keyboard(bills: list[dict]) -> list[list]:

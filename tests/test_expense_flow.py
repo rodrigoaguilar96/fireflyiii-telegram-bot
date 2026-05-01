@@ -177,6 +177,39 @@ async def test_select_budget_routes_to_bill_selection_and_skip(monkeypatch, all_
 
 
 @pytest.mark.asyncio
+async def test_select_bill_preserves_correct_id_after_alphabetical_sort(
+    monkeypatch, all_accounts, expense_accounts, categories, budgets
+):
+    unordered_bills = [
+        {"id": "bill-1", "attributes": {"name": "zeta internet", "active": True}},
+        {"id": "bill-2", "attributes": {"name": "alpha gym", "active": True}},
+    ]
+    patch_expense_data(
+        monkeypatch,
+        all_accounts,
+        expense_accounts,
+        categories,
+        budgets,
+        unordered_bills,
+    )
+
+    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+
+    budget_query = FakeCallbackQuery("budget::comida")
+    state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
+
+    assert state == SELECT_BILL
+    assert button_texts(budget_query.message.replies[-1])[:2] == ["alpha gym", "zeta internet"]
+
+    bill_query = FakeCallbackQuery("bill::bill-1")
+    state = await expense.select_bill(FakeUpdate(callback_query=bill_query), context)
+
+    assert state == ENTER_TAGS
+    assert context.user_data["bill_id"] == "bill-1"
+    assert context.user_data["bill_name"] == "zeta internet"
+
+
+@pytest.mark.asyncio
 async def test_bill_selection_falls_back_to_tags_when_no_usable_active_bills(monkeypatch, all_accounts, expense_accounts, categories, budgets, mixed_bills):
     patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, mixed_bills[2:])
 
