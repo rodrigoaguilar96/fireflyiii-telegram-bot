@@ -32,18 +32,26 @@ def _validate_startup():
     logger.info("Environment validation passed")
 
 
+def _register_handlers(app):
+    """Register conversation handlers first and the callback catch-all last."""
+    for handler in (
+        menu_handlers
+        + expense_handlers
+        + transfer_handlers
+        + account_handlers
+        + assets_handlers
+    ):
+        app.add_handler(handler)
+
+    app.add_handler(CallbackQueryHandler(handle_callback))
+
+
 def main():
     _validate_startup()
 
     logger.info("Starting Firefly III Telegram Bot...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
-    # Register all conversation handlers first
-    for handler in menu_handlers + expense_handlers + transfer_handlers + account_handlers + assets_handlers:
-        app.add_handler(handler)
-
-    # Catch-all callback handler (must be last)
-    app.add_handler(CallbackQueryHandler(handle_callback))
+    _register_handlers(app)
 
     logger.info("Bot started successfully")
     app.run_polling()
