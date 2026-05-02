@@ -1,129 +1,188 @@
 # 🤖 Firefly III Telegram Bot
 
-Este bot te permite interactuar con tu instancia de [Firefly III](https://www.firefly-iii.org/) directamente desde Telegram para consultar cuentas, ver movimientos y registrar gastos fácilmente con categorías, presupuestos y tags.
+Bot de Telegram para operar una instancia de [Firefly III](https://www.firefly-iii.org/) desde el celular: consultar cuentas, ver movimientos, registrar gastos y crear transferencias sin entrar al panel web.
+
+El foco del proyecto es uso personal y rápido. NO apunta a ser un cliente completo de Firefly III ni a replicar toda su UI dentro de Telegram.
+
+**Última release:** `v1.2.2` — selección de suscripciones/facturas ordenada alfabéticamente.
 
 ---
 
-## 📦 Instalación rápida
+## ✨ Funcionalidades actuales
 
-### Usando Docker (recomendado)
+- 📋 Menú interactivo con botones en Telegram (`/menu`).
+- 💸 Registro rápido de gastos con `/gasto`.
+- 🧠 Registro guiado de gastos paso a paso con botones.
+- 🔁 Transferencias entre cuentas de activo.
+- 💼 Consulta de cuentas de activo.
+- 📈 Consulta de saldo y movimientos recientes por cuenta.
+- 📂 Categorías en gastos.
+- 📊 Presupuestos en gastos.
+- 🧾 Suscripciones/facturas existentes de Firefly III en gastos.
+- 🏷️ Tags en gastos.
+- ➕ Creación de nuevas cuentas de destino tipo `expense` desde el flujo guiado.
+- 🔐 Ocultamiento de cuentas vía `.env`.
+- ⚡ Caché de cuentas, categorías, presupuestos y suscripciones/facturas.
+- 🐳 Imagen Docker multi-arquitectura (`amd64`, `arm64`).
 
-1. **Pull de la imagen oficial**
+---
+
+## 📦 Instalación rápida con Docker
+
+1. **Descargá la imagen**
 
 ```bash
 docker pull rja96/fireflyiii-telegram-bot:latest
 ```
 
-2. **Configurar tu .env**
+2. **Configurá el entorno**
+
 ```bash
 cp .env.example .env
 ```
-Completar las variables necesarias:
+
+Variables principales:
+
 ```env
 TELEGRAM_BOT_TOKEN=...
 FIREFLY_III_API_URL=http://firefly_iii_core:8080
 FIREFLY_III_API_TOKEN=...
 HIDE_ACCOUNTS=Cuenta1,Cuenta2
-ALLOWED_USER_IDS=123456789    # Opcional — tu ID de Telegram
-TIMEZONE=Europe/Lisbon        # Tu zona horaria
+ALLOWED_USER_IDS=123456789
+TIMEZONE=Europe/Lisbon
 LOG_LEVEL=INFO
 ```
 
-3. **Levantar el bot**
+> Si `ALLOWED_USER_IDS` queda vacío, el bot queda abierto a cualquiera que lo encuentre. Para uso real, conviene configurarlo.
+
+3. **Levantá el bot**
+
 ```bash
 docker-compose up -d
 ```
 
----
-
-## ✨ Características
-
-- 📋 Menú interactivo con botones en Telegram.
-- 💸 **Registro rápido**: `/gasto 20 burgerking tarjeta comida` — registra un gasto en un solo mensaje.
-- 🧠 **Flujo paso a paso**: origen → monto/descripción → destino → categoría → presupuesto → tags → confirmación.
-- 📂 **Categorías**: seleccioná o asigná categorías a tus gastos.
-- 📊 **Presupuestos**: asigná presupuestos a tus gastos.
-- 🏷️ **Tags**: agregá tags como `comida, delivery, almuerzo`.
-- 🕐 **Destinos recientes**: las cuentas de destino más usadas aparecen primero.
-- 💼 `/assets`: Lista cuentas de tipo "asset".
-- 📈 `/cuenta <nombre> <N>`: Muestra movimientos recientes de una cuenta.
-- 🔐 Cuentas ocultas personalizables vía `.env`.
-- 🔒 **Autorización**: restringí el acceso a usuarios específicos con `ALLOWED_USER_IDS`.
-- ⚡ **Caché**: las cuentas y categorías se cachean para respuestas más rápidas.
+El `docker-compose.yml` asume que Firefly III corre en la red Docker externa `fireflyiii_firefly_iii`.
 
 ---
-
-## ⚙️ Requisitos para desarrollo local
-
-- Python 3.11+
-- Docker + Docker Compose
-- Cuenta de Telegram con un bot creado en [@BotFather](https://t.me/BotFather)
-- Instancia de Firefly III corriendo (idealmente vía Docker)
 
 ## 🧪 Comandos disponibles
 
+```text
+/start                  → Muestra el menú principal
+/menu                   → Reabre el menú
+/assets                 → Lista cuentas de tipo asset
+/cuenta <nombre> [N]    → Muestra saldo y últimos N movimientos de una cuenta
+/gasto                  → Muestra ayuda del registro rápido
+/gasto <monto> <desc> <origen> [categoría] [destino]
+                        → Registra un gasto rápido
+/expenseButton          → Inicia el registro guiado de gasto
+/transferencia          → Inicia una transferencia entre cuentas
+/refresh                → Limpia el caché de datos de Firefly III
+/cancel                 → Cancela el flujo actual
 ```
-/start            → Muestra el menú principal
-/menu             → Reabre el menú
-/assets           → Lista cuentas de tipo asset
-/cuenta <nombre> <N> → Muestra los últimos N movimientos de una cuenta
-/gasto <monto> <desc> <origen> [cat] [dest] → Registro rápido de gasto
-/expenseButton    → Registro de gasto paso a paso con botones
-/cancel           → Cancela el flujo actual
-/refresh          → Refresca el caché de cuentas/categorías
-```
-
-### Flujo rápido recomendado (día a día)
-
-La forma más rápida de registrar un gasto es con `/gasto`:
-
-```
-/gasto 20 burgerking tarjeta comida
-```
-
-Esto registra un gasto de 20 con descripción "burgerking", cuenta de origen "tarjeta" y categoría "comida". El origen es obligatorio y debe ser una cuenta existente. La categoría y el destino son opcionales — si no existen, se omiten.
-
-Ejemplos:
-```
-/gasto 20 burgerking tarjeta comida
-/gasto 13.99 uber tarjeta credito transporte tarjeta
-/gasto 5.50 cafe efectivo
-```
-
-### Flujo paso a paso (completo)
-
-Usá `/expenseButton` o el botón "💸 Registrar gasto" del menú para:
-1. Seleccionar cuenta de origen (recuerda tu última elección)
-2. Escribir monto y descripción
-3. Seleccionar cuenta de destino (con recientes primero, o crear nueva)
-4. Seleccionar categoría
-5. Seleccionar presupuesto (opcional)
-6. Agregar tags (opcional)
-7. Confirmar el gasto
 
 ---
 
-## 🚧 Roadmap personal
+## 💸 Registro rápido de gastos
 
-- [x] Estructura modular escalable
-- [x] Registro de gastos y consultas por cuenta
-- [x] Docker + `.env` seguro
-- [x] Release automation vía GitHub Actions
-- [x] Categorías, presupuestos y tags
-- [x] Caché de cuentas y categorías
-- [x] Confirmación antes de crear gastos
-- [x] Destinos recientes
-- [x] Autorización por usuario
-- [x] Validación de variables de entorno
-- [ ] Modo inline (@bot 13.99 hamburguesa)
-- [ ] Plantillas de gastos recurrentes
-- [ ] Conversión de monedas
+La forma más directa para el día a día es `/gasto`:
+
+```text
+/gasto 20 burgerking tarjeta comida
+```
+
+Formato:
+
+```text
+/gasto <monto> <descripción> <origen> [categoría] [destino]
+```
+
+Reglas importantes:
+
+- `<origen>` es obligatorio y debe ser una cuenta existente.
+- `[categoría]` es opcional; si no existe, se omite.
+- `[destino]` es opcional; si no existe, se omite.
+- Los nombres no distinguen mayúsculas/minúsculas.
+
+Ejemplos:
+
+```text
+/gasto 20 burgerking tarjeta comida
+/gasto 13.99 uber transporte tarjeta credito
+/gasto 5.50 cafe efectivo
+```
+
+---
+
+## 🧠 Registro guiado de gastos
+
+Usá `/expenseButton` o el botón **💸 Registrar gasto** del menú.
+
+El flujo guía por:
+
+1. Cuenta de origen.
+2. Monto y descripción.
+3. Cuenta de destino, sin destino o creación de una nueva.
+4. Categoría opcional.
+5. Presupuesto opcional.
+6. Suscripción/factura opcional.
+7. Tags opcionales.
+8. Confirmación antes de crear el gasto.
+
+Esto es más lento que `/gasto`, pero más seguro cuando querés clasificar bien la transacción.
+
+---
+
+## 🔁 Transferencias
+
+Usá `/transferencia` o el botón **🔁 Transferir** del menú para mover dinero entre cuentas de activo.
+
+El flujo pide:
+
+1. Monto.
+2. Cuenta de origen.
+3. Cuenta de destino.
+4. Confirmación.
+
+La descripción se genera automáticamente como:
+
+```text
+transferencia <origen>-<destino>
+```
+
+---
+
+## ⚙️ Desarrollo local
+
+Requisitos:
+
+- Python 3.11+
+- Docker + Docker Compose
+- Bot de Telegram creado con [@BotFather](https://t.me/BotFather)
+- Instancia de Firefly III accesible desde el bot
+
+Instalación básica:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python run.py
+```
+
+Tests:
+
+```bash
+pytest
+```
 
 ---
 
 ## 📚 Documentación adicional
 
-- [Changelog](./CHANGELOG.md): Historial completo de versiones y cambios importantes.
+- [Changelog](./CHANGELOG.md): historial de versiones publicadas.
+- [Releasing](./RELEASING.md): proceso de release.
 
 ---
 

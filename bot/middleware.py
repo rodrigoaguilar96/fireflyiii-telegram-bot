@@ -24,6 +24,16 @@ async def require_auth(
 ) -> bool:
     """Middleware: reject unauthorized users. Returns True if authorized."""
     user_id = update.effective_user.id
+    username = getattr(update.effective_user, "username", None)
+
+    if not ALLOWED_USER_IDS:
+        logging.warning(
+            "Access allowed because ALLOWED_USER_IDS is empty: user_id=%s username=%s",
+            user_id,
+            username or "-",
+        )
+        return True
+
     if not is_authorized(user_id):
         logging.warning(f"Unauthorized access attempt from user_id={user_id}")
         if update.message:
