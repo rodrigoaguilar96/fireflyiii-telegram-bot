@@ -5,10 +5,14 @@ from telegram.ext import CommandHandler, ContextTypes, CallbackQueryHandler
 from bot.client import get_accounts, safe_get
 from bot.handlers.common import format_account_display
 from bot.handlers.menu import handle_menu_selection
+from bot.middleware import require_auth
 
 
 async def show_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show account info and recent transactions via /cuenta command."""
+    if not await require_auth(update, context):
+        return
+
     parts = update.message.text.strip().split()
     if len(parts) < 2:
         await update.message.reply_text("Uso: /cuenta <nombre> [N]")
@@ -42,6 +46,9 @@ async def show_account_from_callback(query, context, name):
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Catch-all callback handler for non-conversation callbacks."""
+    if not await require_auth(update, context):
+        return
+
     query = update.callback_query
     await query.answer()
     data = query.data

@@ -2,7 +2,7 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 
 from bot.handlers.common import list_commands
-from bot.handlers.assets import list_assets
+from bot.handlers.assets import show_assets
 from bot.middleware import require_auth
 
 
@@ -21,17 +21,20 @@ async def start_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await require_auth(update, context):
+        return
+
     query = update.callback_query
     await query.answer()
     data = query.data
 
     if data == "menu_assets":
-        await list_assets(query, context)
+        await show_assets(update, context)
     elif data == "menu_cuenta":
         await query.message.reply_text(
             "Elegí una cuenta para ver saldo y movimientos:"
         )
-        await list_assets(query, context)
+        await show_assets(update, context)
     elif data == "menu_commands":
         await list_commands(query, context)
 
