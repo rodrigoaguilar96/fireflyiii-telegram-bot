@@ -4,8 +4,6 @@ Bot de Telegram para operar una instancia de [Firefly III](https://www.firefly-i
 
 El foco del proyecto es uso personal y rápido. NO apunta a ser un cliente completo de Firefly III ni a replicar toda su UI dentro de Telegram.
 
-**Última release:** `v1.2.2` — selección de suscripciones/facturas ordenada alfabéticamente.
-
 ---
 
 ## ✨ Funcionalidades actuales
