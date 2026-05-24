@@ -3,6 +3,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 
 from bot.handlers.common import list_commands
 from bot.handlers.assets import show_assets
+from bot.handlers import subscriptions
 from bot.middleware import require_auth
 
 
@@ -15,6 +16,7 @@ async def start_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔁 Transferir", callback_data="menu_transfer")],
         [InlineKeyboardButton("💼 Ver cuentas", callback_data="menu_assets")],
         [InlineKeyboardButton("📊 Ver cuenta + movimientos", callback_data="menu_cuenta")],
+        [InlineKeyboardButton("🧾 Suscripciones pendientes", callback_data="menu_subscriptions")],
         [InlineKeyboardButton("📋 Ver comandos", callback_data="menu_commands")]
     ]
     await update.message.reply_text("¿Qué querés hacer?", reply_markup=InlineKeyboardMarkup(keyboard))
@@ -37,6 +39,8 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
         await show_assets(update, context)
     elif data == "menu_commands":
         await list_commands(query, context)
+    elif data == "menu_subscriptions":
+        await subscriptions.show_current_period_subscriptions(update, context)
 
 
 menu_handlers = [
@@ -44,5 +48,5 @@ menu_handlers = [
     CommandHandler("menu", start_menu),
     # `menu_expense` and `menu_transfer` are intentionally handled by
     # ConversationHandlers so the dedicated flows own their state transitions.
-    CallbackQueryHandler(handle_menu_selection, pattern="^(menu_assets|menu_cuenta|menu_commands)$")
+    CallbackQueryHandler(handle_menu_selection, pattern="^(menu_assets|menu_cuenta|menu_commands|menu_subscriptions)$")
 ]

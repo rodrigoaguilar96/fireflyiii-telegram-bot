@@ -125,6 +125,104 @@ def mixed_bills(bills):
 
 
 @pytest.fixture
+def subscription_bills():
+    return [
+        {
+            "id": "bill-active-unpaid-string",
+            "attributes": {
+                "name": "Netflix *unsafe* [name]",
+                "active": True,
+                "pay_dates": ["2026-05-04"],
+                "paid_dates": [],
+                "amount_min": "10.00",
+                "amount_max": "10.00",
+                "currency_symbol": "€",
+            },
+        },
+        {
+            "id": "bill-active-unpaid-dict",
+            "attributes": {
+                "name": "Internet",
+                "active": True,
+                "pay_dates": [{"date": "2026-05-14T12:30:00+00:00"}],
+                "paid_dates": [],
+                "amount_min": "20.00",
+                "amount_max": "25.50",
+                "currency_code": "EUR",
+            },
+        },
+        {
+            "id": "bill-paid",
+            "attributes": {
+                "name": "Gym",
+                "active": True,
+                "pay_dates": ["2026-05-20"],
+                "paid_dates": ["2026-05-20"],
+                "amount_min": "30.00",
+                "amount_max": "30.00",
+                "currency_code": "EUR",
+            },
+        },
+        {
+            "id": "bill-paid-early",
+            "attributes": {
+                "name": "Rent",
+                "active": True,
+                "pay_dates": ["2026-05-01"],
+                "paid_dates": ["2026-04-30"],
+                "amount_min": "800.00",
+                "amount_max": "800.00",
+                "currency_code": "EUR",
+            },
+        },
+        {
+            "id": "bill-paid-late",
+            "attributes": {
+                "name": "Insurance",
+                "active": True,
+                "pay_dates": ["2026-05-10"],
+                "paid_dates": ["2026-05-12"],
+                "amount_min": "50.00",
+                "amount_max": "50.00",
+                "currency_code": "EUR",
+            },
+        },
+        {
+            "id": "bill-out-of-period",
+            "attributes": {
+                "name": "Cloud",
+                "active": True,
+                "pay_dates": ["2026-06-01"],
+                "paid_dates": [],
+                "amount_min": "7.00",
+                "amount_max": "7.00",
+                "currency_code": "EUR",
+            },
+        },
+        {
+            "id": "bill-inactive",
+            "attributes": {
+                "name": "Old service",
+                "active": False,
+                "pay_dates": ["2026-05-10"],
+                "paid_dates": [],
+            },
+        },
+        {
+            "id": "bill-missing-amount",
+            "attributes": {
+                "name": "Unknown amount",
+                "active": True,
+                "pay_dates": ["2026-05-22"],
+                "paid_dates": [],
+            },
+        },
+        {"id": "broken-attributes", "attributes": "bad"},
+        "not-a-bill",
+    ]
+
+
+@pytest.fixture
 def transactions():
     return [
         {

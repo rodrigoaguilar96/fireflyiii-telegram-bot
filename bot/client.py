@@ -113,6 +113,23 @@ def get_bills(use_cache: bool = True) -> list:
     return bills
 
 
+def get_bills_for_period(start: str, end: str, use_cache: bool = False) -> list:
+    """Get bills for a specific Firefly III period with optional period cache."""
+    cache_key = f"bills:{start}:{end}"
+    if use_cache:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+    bills = safe_get(
+        "/api/v1/bills",
+        params={"start": start, "end": end, "limit": 100},
+    )
+    if use_cache and bills:
+        cache.set(cache_key, bills)
+    return bills
+
+
 def create_transaction(payload: dict) -> requests.Response:
     """Create a new transaction in Firefly III."""
     return safe_post("/api/v1/transactions", payload)
