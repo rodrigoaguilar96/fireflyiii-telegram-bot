@@ -12,6 +12,7 @@ from bot.config import TIMEZONE
 
 EMPTY_SUBSCRIPTIONS_MESSAGE = "✅ No tenés suscripciones pendientes en el período actual."
 SUBSCRIPTIONS_ERROR_MESSAGE = "No se pudieron obtener las suscripciones pendientes ahora."
+PAYMENT_DATE_GRACE_DAYS = 7
 
 
 def get_current_period_bounds() -> tuple[str, str]:
@@ -39,6 +40,40 @@ def _normalized_dates(values) -> set[str]:
     if not isinstance(values, list):
         return set()
     return {date for date in (_normalize_date(value) for value in values) if date}
+
+
+def _parse_date(value: str):
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _matched_paid_due_dates(due_dates: set[str], paid_dates: set[str]) -> set[str]:
+    candidates = []
+    for due_date in due_dates:
+        due = _parse_date(due_date)
+        if not due:
+            if due_date in paid_dates:
+                candidates.append((0, due_date, due_date))
+            continue
+
+        for paid_date in paid_dates:
+            paid = _parse_date(paid_date)
+            if not paid:
+                continue
+            distance = abs((paid - due).days)
+            if distance <= PAYMENT_DATE_GRACE_DAYS:
+                candidates.append((distance, due_date, paid_date))
+
+    matched_due_dates = set()
+    matched_paid_dates = set()
+    for _, due_date, paid_date in sorted(candidates):
+        if due_date in matched_due_dates or paid_date in matched_paid_dates:
+            continue
+        matched_due_dates.add(due_date)
+        matched_paid_dates.add(paid_date)
+    return matched_due_dates
 
 
 def _format_amount(attributes: dict) -> str:
@@ -74,9 +109,13 @@ def extract_pending_subscriptions(bills: list, start: str, end: str) -> list[dic
         if attributes.get("active") is not True or not name:
             continue
 
-        paid_dates = _normalized_dates(attributes.get("paid_dates", []))
-        for due_date in sorted(_normalized_dates(attributes.get("pay_dates", []))):
-            if start <= due_date <= end and due_date not in paid_dates:
+        due_dates = _normalized_dates(attributes.get("pay_dates", []))
+        matched_paid_due_dates = _matched_paid_due_dates(
+            due_dates,
+            _normalized_dates(attributes.get("paid_dates", [])),
+        )
+        for due_date in sorted(due_dates):
+            if start <= due_date <= end and due_date not in matched_paid_due_dates:
                 pending.append(
                     {
                         "name": name,

@@ -164,6 +164,30 @@ def subscription_bills():
             },
         },
         {
+            "id": "bill-paid-early",
+            "attributes": {
+                "name": "Rent",
+                "active": True,
+                "pay_dates": ["2026-05-01"],
+                "paid_dates": ["2026-04-30"],
+                "amount_min": "800.00",
+                "amount_max": "800.00",
+                "currency_code": "EUR",
+            },
+        },
+        {
+            "id": "bill-paid-late",
+            "attributes": {
+                "name": "Insurance",
+                "active": True,
+                "pay_dates": ["2026-05-10"],
+                "paid_dates": ["2026-05-12"],
+                "amount_min": "50.00",
+                "amount_max": "50.00",
+                "currency_code": "EUR",
+            },
+        },
+        {
             "id": "bill-out-of-period",
             "attributes": {
                 "name": "Cloud",

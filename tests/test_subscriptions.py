@@ -37,6 +37,8 @@ def test_extract_pending_subscriptions_filters_unpaid_due_instances(subscription
         "2026-05-22",
     ]
     assert "Gym" not in [item["name"] for item in pending]
+    assert "Rent" not in [item["name"] for item in pending]
+    assert "Insurance" not in [item["name"] for item in pending]
     assert "Cloud" not in [item["name"] for item in pending]
     assert "Old service" not in [item["name"] for item in pending]
 
@@ -53,6 +55,8 @@ def test_build_pending_subscriptions_message_formats_amounts_and_plain_text(subs
     assert "• Internet — vence 2026-05-14 — 20.00 - 25.50 EUR" in message
     assert "• Unknown amount — vence 2026-05-22 — monto no disponible" in message
     assert "Gym" not in message
+    assert "Rent" not in message
+    assert "Insurance" not in message
 
 
 def test_build_pending_subscriptions_message_empty_state():
@@ -83,6 +87,58 @@ def test_build_pending_subscriptions_message_falls_back_for_invalid_amount():
     )
 
     assert "• Invalid amount — vence 2026-05-09 — monto no disponible" in message
+
+
+def test_extract_pending_subscriptions_keeps_payments_one_to_one():
+    bills = [
+        {
+            "attributes": {
+                "name": "Weekly service",
+                "active": True,
+                "pay_dates": ["2026-05-01", "2026-05-08"],
+                "paid_dates": ["2026-05-05"],
+                "amount_min": "5.00",
+                "amount_max": "5.00",
+                "currency_code": "EUR",
+            }
+        }
+    ]
+
+    pending = subscriptions.extract_pending_subscriptions(bills, "2026-05-01", "2026-05-31")
+
+    assert pending == [
+        {
+            "name": "Weekly service",
+            "due_date": "2026-05-01",
+            "amount": "5.00 EUR",
+        }
+    ]
+
+
+def test_extract_pending_subscriptions_keeps_out_of_grace_payments_pending():
+    bills = [
+        {
+            "attributes": {
+                "name": "Delayed service",
+                "active": True,
+                "pay_dates": ["2026-05-01"],
+                "paid_dates": ["2026-05-09"],
+                "amount_min": "15.00",
+                "amount_max": "15.00",
+                "currency_code": "EUR",
+            }
+        }
+    ]
+
+    pending = subscriptions.extract_pending_subscriptions(bills, "2026-05-01", "2026-05-31")
+
+    assert pending == [
+        {
+            "name": "Delayed service",
+            "due_date": "2026-05-01",
+            "amount": "15.00 EUR",
+        }
+    ]
 
 
 @pytest.mark.asyncio
