@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       custom_tag:
-        description: 'Optional custom tag for manual builds (e.g., v1.0.2)'
+        description: 'Optional custom tag for manual builds (SemVer tags v1.0.2 or 1.0.2 also update latest)'
         required: false
 
 jobs:
@@ -46,6 +46,11 @@ jobs:
             TAG=$BRANCH_NAME_SAFE
           fi
           echo "TAG=$TAG" >> $GITHUB_ENV
+          if [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "PUBLISH_LATEST=true" >> $GITHUB_ENV
+          else
+            echo "PUBLISH_LATEST=false" >> $GITHUB_ENV
+          fi
 
       - name: Build and Push Docker image (multiarch)
         uses: docker/build-push-action@v7
@@ -55,4 +60,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             rja96/fireflyiii-telegram-bot:${{ env.TAG }}
-            ${{ startsWith(env.TAG, 'v') && 'rja96/fireflyiii-telegram-bot:latest' || '' }}
+            ${{ env.PUBLISH_LATEST == 'true' && 'rja96/fireflyiii-telegram-bot:latest' || '' }}
