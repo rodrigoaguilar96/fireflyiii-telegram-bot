@@ -1,6 +1,6 @@
 import pytest
 
-from bot.handlers import account, assets, common, menu
+from bot.handlers import account, assets, common, menu, subscriptions
 from tests.conftest import FakeCallbackQuery, FakeContext, FakeMessage, FakeUpdate, button_texts
 
 
@@ -15,6 +15,7 @@ async def test_start_and_menu_show_main_keyboard():
     assert "🔁 Transferir" in buttons
     assert "💼 Ver cuentas" in buttons
     assert "📊 Ver cuenta + movimientos" in buttons
+    assert "🧾 Suscripciones pendientes" in buttons
     assert "📋 Ver comandos" in buttons
 
 
@@ -29,6 +30,31 @@ async def test_menu_callbacks_route_to_assets_and_commands(monkeypatch, asset_ac
     commands_query = FakeCallbackQuery("menu_commands")
     await menu.handle_menu_selection(FakeUpdate(callback_query=commands_query), FakeContext())
     assert "Comandos disponibles" in commands_query.message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_menu_subscriptions_callback_routes_without_flow_side_effects(monkeypatch):
+    calls = []
+
+    async def fake_show_current_period_subscriptions(update, context):
+        calls.append((update, context))
+        await update.callback_query.message.reply_text("subscriptions ok")
+
+    monkeypatch.setattr(
+        subscriptions,
+        "show_current_period_subscriptions",
+        fake_show_current_period_subscriptions,
+    )
+
+    query = FakeCallbackQuery("menu_subscriptions")
+    context = FakeContext(user_data={"existing": "value"})
+
+    await menu.handle_menu_selection(FakeUpdate(callback_query=query), context)
+
+    assert query.answers == [{"text": None}]
+    assert query.message.replies[-1]["text"] == "subscriptions ok"
+    assert calls[0][1] is context
+    assert context.user_data == {"existing": "value"}
 
 
 @pytest.mark.asyncio

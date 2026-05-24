@@ -98,6 +98,51 @@ def test_get_bills_uses_cache(monkeypatch, bills):
     assert calls == [("/api/v1/bills", {"limit": 100})]
 
 
+def test_get_bills_for_period_sends_start_end_and_limit(monkeypatch, bills):
+    calls = []
+
+    def fake_safe_get(endpoint, params=None):
+        calls.append((endpoint, params))
+        return bills
+
+    monkeypatch.setattr(client, "safe_get", fake_safe_get)
+
+    result = client.get_bills_for_period("2026-05-01", "2026-05-31")
+
+    assert result == bills
+    assert calls == [
+        (
+            "/api/v1/bills",
+            {"start": "2026-05-01", "end": "2026-05-31", "limit": 100},
+        )
+    ]
+
+
+def test_get_bills_for_period_cache_is_optional_and_isolated(monkeypatch, bills):
+    local_cache = TTLCache(default_ttl=60)
+    monkeypatch.setattr(client, "cache", local_cache)
+    calls = []
+
+    def fake_safe_get(endpoint, params=None):
+        calls.append(params)
+        return bills
+
+    monkeypatch.setattr(client, "safe_get", fake_safe_get)
+
+    assert client.get_bills_for_period("2026-05-01", "2026-05-31") == bills
+    assert client.get_bills_for_period("2026-05-01", "2026-05-31") == bills
+    assert len(calls) == 2
+    assert local_cache.get("bills:2026-05-01:2026-05-31") is None
+
+    assert client.get_bills_for_period("2026-05-01", "2026-05-31", use_cache=True) == bills
+    assert client.get_bills_for_period("2026-05-01", "2026-05-31", use_cache=True) == bills
+    assert len(calls) == 3
+    assert local_cache.get("bills:2026-05-01:2026-05-31") == bills
+
+    assert client.get_bills() == bills
+    assert local_cache.get("bills") == bills
+
+
 @pytest.mark.asyncio
 async def test_auth_open_allowed_and_denied(monkeypatch):
     monkeypatch.setattr(middleware, "ALLOWED_USER_IDS", [])
