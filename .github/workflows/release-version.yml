@@ -25,6 +25,14 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
+      - name: Validate version format
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must use v-prefixed SemVer, for example v1.3.0"
+            exit 1
+          fi
+
       - name: Create Git Tag
         run: |
           git tag ${{ github.event.inputs.version }}
