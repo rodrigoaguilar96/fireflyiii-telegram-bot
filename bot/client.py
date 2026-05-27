@@ -1,20 +1,27 @@
 import logging
-import requests
 from typing import Optional
+
+import requests
 
 from bot.config import FIREFLY_URL, FIREFLY_TOKEN
 from bot.cache import cache
 
-HEADERS = {"Authorization": f"Bearer {FIREFLY_TOKEN}"}
 HTTP_TIMEOUT = 10  # seconds
 
 
-def _build_headers() -> dict:
-    """Build headers with validation."""
+def _build_headers(include_content_type: bool = False) -> dict:
+    """Build headers with validation and API negotiation."""
     if not FIREFLY_TOKEN:
         logging.error("FIREFLY_III_API_TOKEN is not set!")
         return {}
-    return {"Authorization": f"Bearer {FIREFLY_TOKEN}"}
+
+    headers = {
+        "Authorization": f"Bearer {FIREFLY_TOKEN}",
+        "Accept": "application/vnd.api+json",
+    }
+    if include_content_type:
+        headers["Content-Type"] = "application/json"
+    return headers
 
 
 def safe_get(endpoint: str, params: Optional[dict] = None) -> list:
@@ -22,7 +29,7 @@ def safe_get(endpoint: str, params: Optional[dict] = None) -> list:
     try:
         response = requests.get(
             f"{FIREFLY_URL}{endpoint}",
-            headers=HEADERS,
+            headers=_build_headers(),
             params=params,
             timeout=HTTP_TIMEOUT,
         )
@@ -41,7 +48,7 @@ def safe_post(endpoint: str, json_payload: dict) -> requests.Response:
     return requests.post(
         f"{FIREFLY_URL}{endpoint}",
         json=json_payload,
-        headers=HEADERS,
+        headers=_build_headers(include_content_type=True),
         timeout=HTTP_TIMEOUT,
     )
 

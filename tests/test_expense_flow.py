@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 from telegram.ext import ConversationHandler
 
 from bot.constants import (
@@ -71,7 +72,7 @@ async def test_menu_to_expense_full_flow_preserves_multi_word_description(
         FakeUpdate(message=amount_message), context
     )
     assert state == SELECT_DESTINATION
-    assert context.user_data["amount"] == 12.55
+    assert context.user_data["amount"] == Decimal("12.55")
     assert context.user_data["description"] == "supermercado pingo doce"
 
     dest_query = FakeCallbackQuery("dest::pingo doce")
@@ -160,7 +161,9 @@ async def test_expense_button_flow_allows_optional_skips(
 async def test_select_budget_routes_to_bill_selection_and_skip(monkeypatch, all_accounts, expense_accounts, categories, budgets, bills):
     patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, bills)
 
-    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+    context = FakeContext(
+        user_data={"amount": Decimal("10.00"), "description": "cafe", "origin": "tarjeta"}
+    )
 
     budget_query = FakeCallbackQuery("budget::none")
     state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
@@ -193,7 +196,9 @@ async def test_select_bill_preserves_correct_id_after_alphabetical_sort(
         unordered_bills,
     )
 
-    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+    context = FakeContext(
+        user_data={"amount": Decimal("10.00"), "description": "cafe", "origin": "tarjeta"}
+    )
 
     budget_query = FakeCallbackQuery("budget::comida")
     state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
@@ -213,7 +218,9 @@ async def test_select_bill_preserves_correct_id_after_alphabetical_sort(
 async def test_bill_selection_falls_back_to_tags_when_no_usable_active_bills(monkeypatch, all_accounts, expense_accounts, categories, budgets, mixed_bills):
     patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, mixed_bills[2:])
 
-    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+    context = FakeContext(
+        user_data={"amount": Decimal("10.00"), "description": "cafe", "origin": "tarjeta"}
+    )
 
     budget_query = FakeCallbackQuery("budget::comida")
     state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
@@ -226,7 +233,9 @@ async def test_bill_selection_falls_back_to_tags_when_no_usable_active_bills(mon
 async def test_bill_selection_falls_back_to_tags_when_api_fails(monkeypatch, all_accounts, expense_accounts, categories, budgets):
     patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets, [])
 
-    context = FakeContext(user_data={"amount": 10.0, "description": "cafe", "origin": "tarjeta"})
+    context = FakeContext(
+        user_data={"amount": Decimal("10.00"), "description": "cafe", "origin": "tarjeta"}
+    )
 
     budget_query = FakeCallbackQuery("budget::comida")
     state = await expense.select_budget(FakeUpdate(callback_query=budget_query), context)
@@ -256,7 +265,7 @@ async def test_expense_button_flow_can_create_new_destination(
     )
 
     context = FakeContext({"user_data": {}})
-    context.user_data["amount"] = 20.0
+    context.user_data["amount"] = Decimal("20.00")
     context.user_data["description"] = "compra"
     context.user_data["origin"] = "tarjeta"
 
@@ -342,7 +351,7 @@ async def test_quick_expense_creates_minimal_transaction(monkeypatch, all_accoun
     await expense.quick_expense(FakeUpdate(message=message), context)
 
     transaction = created_payloads[0]["transactions"][0]
-    assert transaction["amount"] == "12.0"
+    assert transaction["amount"] == "12.00"
     assert transaction["description"] == "cafe"
     assert transaction["source_id"] == "asset-1"
     assert "bill_id" not in transaction

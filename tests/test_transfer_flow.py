@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 from telegram.ext import ConversationHandler
 
 from bot.constants import (
@@ -61,7 +62,7 @@ async def test_menu_transfer_flow_happy_path_and_exact_payload(monkeypatch):
     amount_message = FakeMessage("25.50")
     state = await transfer.enter_amount(FakeUpdate(message=amount_message), context)
     assert state == TRANSFER_SELECT_SOURCE
-    assert context.user_data["amount"] == 25.5
+    assert context.user_data["amount"] == Decimal("25.50")
     assert button_texts(amount_message.replies[-1]) == ["tarjeta", "caja ahorro", "❌ Cancelar"]
 
     source_query = FakeCallbackQuery("transfer_source::asset-1")
@@ -89,7 +90,7 @@ async def test_menu_transfer_flow_happy_path_and_exact_payload(monkeypatch):
     transaction = created_payloads[0]["transactions"][0]
     assert transaction == {
         "type": "transfer",
-        "amount": "25.5",
+        "amount": "25.50",
         "description": "transferencia tarjeta-caja ahorro",
         "source_id": "asset-1",
         "destination_id": "asset-2",
@@ -127,7 +128,7 @@ async def test_transfer_keyboards_use_two_columns_and_filter_hidden_accounts(mon
     assert all(button.text != "efectivo" for row in keyboard for button in row)
 
     monkeypatch.setattr(transfer, "get_accounts", lambda account_type=None: accounts)
-    context = FakeContext(user_data={"amount": 10.0})
+    context = FakeContext(user_data={"amount": Decimal("10.00")})
     query = FakeCallbackQuery("transfer_source::asset-1")
 
     state = await transfer.select_source(FakeUpdate(callback_query=query), context)
@@ -147,7 +148,7 @@ async def test_transfer_rejects_same_source_and_destination(monkeypatch):
 
     context = FakeContext(
         user_data={
-            "amount": 10.0,
+            "amount": Decimal("10.00"),
             "source_id": "asset-1",
             "source_name": "tarjeta",
         }
@@ -166,7 +167,7 @@ async def test_transfer_stops_when_source_lookup_is_invalid(monkeypatch):
     monkeypatch.setattr(transfer, "get_accounts", lambda account_type=None: accounts)
     monkeypatch.setattr(transfer, "OCULTAR_CUENTAS_LOWER", [])
 
-    context = FakeContext(user_data={"amount": 10.0})
+    context = FakeContext(user_data={"amount": Decimal("10.00")})
     query = FakeCallbackQuery("transfer_source::missing")
 
     state = await transfer.select_source(FakeUpdate(callback_query=query), context)
@@ -181,7 +182,7 @@ async def test_transfer_stops_when_no_destination_accounts_remain(monkeypatch):
     monkeypatch.setattr(transfer, "get_accounts", lambda account_type=None: accounts)
     monkeypatch.setattr(transfer, "OCULTAR_CUENTAS_LOWER", ["caja ahorro", "efectivo"])
 
-    context = FakeContext(user_data={"amount": 10.0})
+    context = FakeContext(user_data={"amount": Decimal("10.00")})
     query = FakeCallbackQuery("transfer_source::asset-1")
 
     state = await transfer.select_source(FakeUpdate(callback_query=query), context)
@@ -200,7 +201,7 @@ async def test_transfer_cancellation_does_not_create_transaction(monkeypatch):
         return FakeResponse()
 
     monkeypatch.setattr(transfer, "create_transaction", fake_create_transaction)
-    context = FakeContext(user_data={"amount": 10.0})
+    context = FakeContext(user_data={"amount": Decimal("10.00")})
 
     state = await transfer.cancel_transfer(
         FakeUpdate(callback_query=FakeCallbackQuery("cancel_transfer")), context
