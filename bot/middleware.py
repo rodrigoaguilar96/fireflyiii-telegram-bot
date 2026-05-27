@@ -67,11 +67,12 @@ def validate_amount(text: str) -> Optional[Decimal]:
     if not amount.is_finite():
         return None
 
-    exponent = amount.as_tuple().exponent
-    if exponent < -2:
-        return None
-
     try:
-        return amount.quantize(Decimal("0.00"))
+        quantized = amount.quantize(Decimal("0.00"))
     except InvalidOperation:
         return None
+
+    if amount != quantized:
+        return None
+
+    return quantized

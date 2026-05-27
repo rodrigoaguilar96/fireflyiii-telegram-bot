@@ -202,6 +202,8 @@ def test_validation_helpers():
     assert middleware.validate_amount("12,55") == Decimal("12.55")
     assert middleware.validate_amount("12.10") == Decimal("12.10")
     assert middleware.validate_amount("12.1") == Decimal("12.10")
+    assert middleware.validate_amount("10.000") == Decimal("10.00")
+    assert middleware.validate_amount("12.1200") == Decimal("12.12")
     assert middleware.validate_amount("12.123") is None
     assert middleware.validate_amount("nope") is None
     assert middleware.validate_amount("NaN") is None
