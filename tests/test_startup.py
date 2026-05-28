@@ -33,6 +33,7 @@ def test_register_handlers_adds_all_known_handlers_and_catch_all_last(monkeypatc
     sentinel_handlers = {
         "menu": object(),
         "expense": object(),
+        "income": object(),
         "transfer": object(),
         "account": object(),
         "assets": object(),
@@ -40,6 +41,7 @@ def test_register_handlers_adds_all_known_handlers_and_catch_all_last(monkeypatc
 
     monkeypatch.setattr(main, "menu_handlers", [sentinel_handlers["menu"]])
     monkeypatch.setattr(main, "expense_handlers", [sentinel_handlers["expense"]])
+    monkeypatch.setattr(main, "income_handlers", [sentinel_handlers["income"]])
     monkeypatch.setattr(main, "transfer_handlers", [sentinel_handlers["transfer"]])
     monkeypatch.setattr(main, "account_handlers", [sentinel_handlers["account"]])
     monkeypatch.setattr(main, "assets_handlers", [sentinel_handlers["assets"]])
