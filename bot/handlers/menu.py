@@ -13,6 +13,7 @@ async def start_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton("💸 Registrar gasto", callback_data="menu_expense")],
+        [InlineKeyboardButton("💰 Registrar ingreso", callback_data="menu_income")],
         [InlineKeyboardButton("🔁 Transferir", callback_data="menu_transfer")],
         [InlineKeyboardButton("💼 Ver cuentas", callback_data="menu_assets")],
         [InlineKeyboardButton("📊 Ver cuenta + movimientos", callback_data="menu_cuenta")],
@@ -46,7 +47,7 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
 menu_handlers = [
     CommandHandler("start", start_menu),
     CommandHandler("menu", start_menu),
-    # `menu_expense` and `menu_transfer` are intentionally handled by
+    # `menu_expense`, `menu_income`, and `menu_transfer` are intentionally handled by
     # ConversationHandlers so the dedicated flows own their state transitions.
     CallbackQueryHandler(handle_menu_selection, pattern="^(menu_assets|menu_cuenta|menu_commands|menu_subscriptions)$")
 ]

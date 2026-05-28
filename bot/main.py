@@ -6,6 +6,7 @@ from telegram.ext import ApplicationBuilder, CallbackQueryHandler
 from bot.config import TELEGRAM_TOKEN, LOG_LEVEL, validate_env
 from bot.handlers.menu import menu_handlers
 from bot.handlers.expense import expense_handlers
+from bot.handlers.income import income_handlers
 from bot.handlers.transfer import transfer_handlers
 from bot.handlers.account import account_handlers, handle_callback
 from bot.handlers.assets import assets_handlers
@@ -37,6 +38,7 @@ def _register_handlers(app):
     for handler in (
         menu_handlers
         + expense_handlers
+        + income_handlers
         + transfer_handlers
         + account_handlers
         + assets_handlers
