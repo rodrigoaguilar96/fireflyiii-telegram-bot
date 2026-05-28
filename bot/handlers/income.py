@@ -7,6 +7,7 @@ import pytz
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     CallbackQueryHandler,
+    CommandHandler,
     ConversationHandler,
     ContextTypes,
     MessageHandler,
@@ -218,7 +219,10 @@ income_conv = ConversationHandler(
             CallbackQueryHandler(confirm_income, pattern="^confirm_income$"),
         ],
     },
-    fallbacks=[CallbackQueryHandler(cancel_income, pattern="^cancelar_ingreso$")],
+    fallbacks=[
+        CommandHandler("cancel", cancel_income),
+        CallbackQueryHandler(cancel_income, pattern="^cancelar_ingreso$"),
+    ],
     per_chat=True,
     per_message=False,
 )

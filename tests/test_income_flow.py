@@ -93,6 +93,18 @@ async def test_income_amount_requires_description(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_income_flow_can_be_cancelled_with_command():
+    context = FakeContext(user_data={"destination": "tarjeta"})
+    message = FakeMessage("/cancel")
+
+    state = await income.cancel_income(FakeUpdate(message=message), context)
+
+    assert state == ConversationHandler.END
+    assert context.user_data == {}
+    assert "Operación cancelada" in message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
 async def test_income_missing_destination_account_does_not_create_transaction(
     monkeypatch, all_accounts
 ):
