@@ -1,10 +1,20 @@
 """Shared helpers for account display and common utilities."""
+from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from bot.client import get_accounts, safe_get
+
+
+def _format_decimal_amount(value: str) -> str:
+    """Format Firefly amount string as fixed 2-decimal text."""
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return "0.00"
+    return format(amount, ".2f")
 
 
 async def format_account_display(
@@ -35,7 +45,7 @@ async def format_account_display(
 
     lines = [
         f"📊 *{account_name}*",
-        f"💰 Balance: {float(balance):.2f}",
+        f"💰 Balance: {_format_decimal_amount(balance)}",
         f"📋 Últimos {limit} movimientos:",
         "---",
     ]
@@ -44,8 +54,8 @@ async def format_account_display(
         for s in t["attributes"].get("transactions", []):
             fecha = s.get("date", "").split("T")[0]
             desc = s.get("description", "-")
-            monto = float(s.get("amount", "0.00"))
-            lines.append(f"{fecha} | {desc} | {monto:.2f}")
+            monto = _format_decimal_amount(s.get("amount", "0.00"))
+            lines.append(f"{fecha} | {desc} | {monto}")
 
     return "\n".join(lines)
 

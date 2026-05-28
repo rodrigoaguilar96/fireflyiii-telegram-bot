@@ -1,4 +1,5 @@
 import time
+from decimal import Decimal
 
 import pytest
 import requests
@@ -46,6 +47,38 @@ def test_safe_get_success_timeout_and_error(monkeypatch):
 
     monkeypatch.setattr(client.requests, "get", boom)
     assert client.safe_get("/boom") == []
+
+
+def test_safe_get_and_safe_post_build_api_headers(monkeypatch):
+    captured_get = {}
+    captured_post = {}
+
+    def fake_get(url, **kwargs):
+        captured_get["url"] = url
+        captured_get["headers"] = kwargs.get("headers", {})
+        return FakeResponse({"data": []})
+
+    def fake_post(url, **kwargs):
+        captured_post["url"] = url
+        captured_post["headers"] = kwargs.get("headers", {})
+        return FakeResponse({"data": {}})
+
+    monkeypatch.setattr(client, "FIREFLY_TOKEN", "test-token")
+    monkeypatch.setattr(client.requests, "get", fake_get)
+    monkeypatch.setattr(client.requests, "post", fake_post)
+
+    client.safe_get("/api/v1/accounts")
+    client.safe_post("/api/v1/transactions", {"transactions": []})
+
+    assert captured_get["headers"] == {
+        "Authorization": "Bearer test-token",
+        "Accept": "application/vnd.api+json",
+    }
+    assert captured_post["headers"] == {
+        "Authorization": "Bearer test-token",
+        "Accept": "application/vnd.api+json",
+        "Content-Type": "application/json",
+    }
 
 
 def test_get_accounts_uses_cache_and_local_filter_fallback(monkeypatch, all_accounts):
@@ -166,8 +199,14 @@ async def test_auth_open_allowed_and_denied(monkeypatch):
 
 def test_validation_helpers():
     assert middleware.sanitize_text("  abc  ", 2) == "ab"
-    assert middleware.validate_amount("12,55") == 12.55
+    assert middleware.validate_amount("12,55") == Decimal("12.55")
+    assert middleware.validate_amount("12.10") == Decimal("12.10")
+    assert middleware.validate_amount("12.1") == Decimal("12.10")
+    assert middleware.validate_amount("10.000") == Decimal("10.00")
+    assert middleware.validate_amount("12.1200") == Decimal("12.12")
+    assert middleware.validate_amount("12.123") is None
     assert middleware.validate_amount("nope") is None
+    assert middleware.validate_amount("NaN") is None
 
 
 def test_keyboard_and_summary_helpers(expense_accounts, mixed_bills):
@@ -193,7 +232,7 @@ def test_keyboard_and_summary_helpers(expense_accounts, mixed_bills):
 
     summary = expense._build_confirmation_summary(
         {
-            "amount": 12.55,
+            "amount": Decimal("12.55"),
             "description": "supermercado pingo doce",
             "origin": "tarjeta",
             "destination": None,

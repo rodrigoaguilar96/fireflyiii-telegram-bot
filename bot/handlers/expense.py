@@ -666,7 +666,7 @@ async def _create_expense_transaction(message_source, context: ContextTypes.DEFA
     today = datetime.now(pytz.timezone(TIMEZONE)).isoformat()
     transaction = {
         "type": "withdrawal",
-        "amount": str(ud["amount"]),
+        "amount": format(ud["amount"], ".2f"),
         "description": ud["description"],
         "source_id": source_id,
         "date": today,
@@ -806,7 +806,7 @@ async def quick_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = datetime.now(pytz.timezone(TIMEZONE)).isoformat()
     transaction = {
         "type": "withdrawal",
-        "amount": str(amount),
+        "amount": format(amount, ".2f"),
         "description": description,
         "source_id": source_account["id"],
         "date": today,

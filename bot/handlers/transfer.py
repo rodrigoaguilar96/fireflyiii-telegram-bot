@@ -195,7 +195,7 @@ async def confirm_transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "transactions": [
             {
                 "type": "transfer",
-                "amount": str(user_data["amount"]),
+                "amount": format(user_data["amount"], ".2f"),
                 "description": (
                     f"transferencia {user_data['source_name']}-{user_data['destination_name']}"
                 ),

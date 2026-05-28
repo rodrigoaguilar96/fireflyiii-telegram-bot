@@ -1,4 +1,5 @@
 """Authorization middleware and input validation helpers."""
+from decimal import Decimal, InvalidOperation
 import logging
 from typing import Optional
 
@@ -56,9 +57,22 @@ def sanitize_text(text: str, max_length: int = 255) -> str:
     return cleaned
 
 
-def validate_amount(text: str) -> Optional[float]:
-    """Parse amount from text. Returns float or None if invalid."""
+def validate_amount(text: str) -> Optional[Decimal]:
+    """Parse amount from text with exact 2-decimal scale enforcement."""
     try:
-        return float(text.replace(",", "."))
-    except (ValueError, AttributeError):
+        amount = Decimal(text.replace(",", "."))
+    except (InvalidOperation, AttributeError):
         return None
+
+    if not amount.is_finite():
+        return None
+
+    try:
+        quantized = amount.quantize(Decimal("0.00"))
+    except InvalidOperation:
+        return None
+
+    if amount != quantized:
+        return None
+
+    return quantized
