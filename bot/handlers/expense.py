@@ -25,6 +25,7 @@ from bot.client import (
 )
 from bot.config import OCULTAR_CUENTAS_LOWER, TIMEZONE
 from bot.constants import (
+    EXPENSE_BUTTON_TEXT,
     SELECT_ORIGIN,
     ENTER_AMOUNT_DESC,
     SELECT_DESTINATION,
@@ -872,6 +873,7 @@ async def refresh_cache_command(update: Update, context: ContextTypes.DEFAULT_TY
 expense_conv = ConversationHandler(
     entry_points=[
         CommandHandler("expenseButton", start_expense_button),
+        MessageHandler(filters.Regex(f"^{EXPENSE_BUTTON_TEXT}$"), start_expense_button),
         CallbackQueryHandler(start_expense_button, pattern="^menu_expense$"),
     ],
     states={

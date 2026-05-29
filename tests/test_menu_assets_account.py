@@ -1,5 +1,6 @@
 import pytest
 
+from bot.constants import EXPENSE_BUTTON_TEXT, MENU_BUTTON_TEXT
 from bot.handlers import account, assets, common, menu, subscriptions
 from tests.conftest import FakeCallbackQuery, FakeContext, FakeMessage, FakeUpdate, button_texts
 
@@ -9,6 +10,14 @@ async def test_start_and_menu_show_main_keyboard():
     message = FakeMessage("/start")
 
     await menu.start_menu(FakeUpdate(message=message), FakeContext())
+
+    quick_reply = message.replies[0]
+    quick_buttons = [
+        getattr(button, "text", button)
+        for row in quick_reply["reply_markup"].keyboard
+        for button in row
+    ]
+    assert quick_buttons == [MENU_BUTTON_TEXT, EXPENSE_BUTTON_TEXT]
 
     buttons = button_texts(message.replies[-1])
     assert "💸 Registrar gasto" in buttons

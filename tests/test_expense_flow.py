@@ -3,6 +3,7 @@ from decimal import Decimal
 from telegram.ext import ConversationHandler
 
 from bot.constants import (
+    EXPENSE_BUTTON_TEXT,
     SELECT_ORIGIN,
     ENTER_AMOUNT_DESC,
     SELECT_DESTINATION,
@@ -62,7 +63,6 @@ async def test_menu_to_expense_full_flow_preserves_multi_word_description(
     )
     assert state == SELECT_ORIGIN
     assert "tarjeta" in button_texts(menu_query.message.replies[-1])
-
     origin_query = FakeCallbackQuery("origin::tarjeta")
     state = await expense.select_origin(FakeUpdate(callback_query=origin_query), context)
     assert state == ENTER_AMOUNT_DESC
@@ -118,6 +118,21 @@ async def test_menu_to_expense_full_flow_preserves_multi_word_description(
     assert transaction["bill_id"] == "bill-1"
     assert "date" in transaction
     assert "Gasto registrado correctamente" in confirm_query.message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_persistent_expense_button_starts_step_by_step_flow(
+    monkeypatch, all_accounts, expense_accounts, categories, budgets
+):
+    patch_expense_data(monkeypatch, all_accounts, expense_accounts, categories, budgets)
+    context = FakeContext(user_data={"stale": "value"})
+    message = FakeMessage(EXPENSE_BUTTON_TEXT)
+
+    state = await expense.start_expense_button(FakeUpdate(message=message), context)
+
+    assert state == SELECT_ORIGIN
+    assert context.user_data == {}
+    assert "tarjeta" in button_texts(message.replies[-1])
 
 
 @pytest.mark.asyncio
