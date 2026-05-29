@@ -25,6 +25,9 @@ from bot.client import (
 )
 from bot.config import OCULTAR_CUENTAS_LOWER, TIMEZONE
 from bot.constants import (
+    EXPENSE_BUTTON_PATTERN,
+    EXPENSE_BUTTON_TEXT,
+    MENU_BUTTON_PATTERN,
     SELECT_ORIGIN,
     ENTER_AMOUNT_DESC,
     SELECT_DESTINATION,
@@ -37,6 +40,7 @@ from bot.constants import (
 )
 from bot.middleware import require_auth, validate_amount, sanitize_text
 from bot.handlers.common import list_commands
+from bot.handlers.menu import cancel_to_menu
 
 logger = logging.getLogger(__name__)
 
@@ -872,40 +876,64 @@ async def refresh_cache_command(update: Update, context: ContextTypes.DEFAULT_TY
 expense_conv = ConversationHandler(
     entry_points=[
         CommandHandler("expenseButton", start_expense_button),
+        MessageHandler(filters.Regex(f"^{EXPENSE_BUTTON_TEXT}$"), start_expense_button),
         CallbackQueryHandler(start_expense_button, pattern="^menu_expense$"),
     ],
     states={
         SELECT_ORIGIN: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             CallbackQueryHandler(select_origin, pattern="^origin::"),
         ],
         ENTER_AMOUNT_DESC: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             MessageHandler(filters.TEXT & ~filters.COMMAND, enter_amount_description),
         ],
         SELECT_DESTINATION: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             CallbackQueryHandler(select_destination, pattern="^dest::"),
         ],
         ENTER_NEW_DEST_NAME: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             MessageHandler(filters.TEXT & ~filters.COMMAND, enter_new_dest_name),
         ],
         SELECT_CATEGORY: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             CallbackQueryHandler(select_category, pattern="^cat::"),
         ],
         SELECT_BUDGET: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             CallbackQueryHandler(select_budget, pattern="^budget::"),
         ],
         SELECT_BILL: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             CallbackQueryHandler(select_bill, pattern="^bill::"),
         ],
         ENTER_TAGS: [
             CallbackQueryHandler(skip_tags, pattern="^tags::none$"),
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             MessageHandler(filters.TEXT & ~filters.COMMAND, enter_tags),
         ],
         CONFIRM_EXPENSE: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
             CallbackQueryHandler(confirm_expense, pattern="^confirm_expense$"),
         ],
     },
     fallbacks=[
         CommandHandler("cancel", cancel),
+        CommandHandler("start", cancel_to_menu),
+        CommandHandler("menu", cancel_to_menu),
+        CommandHandler("expenseButton", start_expense_button),
+        MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+        MessageHandler(filters.Regex(EXPENSE_BUTTON_PATTERN), start_expense_button),
         CallbackQueryHandler(cancel, pattern="^cancelar$"),
     ],
     per_chat=True,

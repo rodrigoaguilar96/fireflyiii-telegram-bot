@@ -3,7 +3,27 @@ from types import SimpleNamespace
 import pytest
 from telegram.ext import CallbackQueryHandler
 
+from bot.constants import (
+    CONFIRM_EXPENSE,
+    ENTER_AMOUNT_DESC,
+    ENTER_NEW_DEST_NAME,
+    ENTER_TAGS,
+    INCOME_CONFIRM,
+    INCOME_ENTER_AMOUNT_DESC,
+    INCOME_SELECT_DESTINATION,
+    SELECT_BILL,
+    SELECT_BUDGET,
+    SELECT_CATEGORY,
+    SELECT_DESTINATION,
+    SELECT_ORIGIN,
+    TRANSFER_CONFIRM,
+    TRANSFER_ENTER_AMOUNT,
+    TRANSFER_SELECT_DESTINATION,
+    TRANSFER_SELECT_SOURCE,
+)
 from bot import main
+from bot.handlers import expense, income, menu, transfer
+from bot.handlers.common import cancel_current_flow_for_expense_shortcut
 
 
 class FakeApp:
@@ -48,9 +68,82 @@ def test_register_handlers_adds_all_known_handlers_and_catch_all_last(monkeypatc
 
     main._register_handlers(app)
 
-    assert app.handlers[:-1] == list(sentinel_handlers.values())
+    assert app.handlers[:-1] == [
+        sentinel_handlers["income"],
+        sentinel_handlers["transfer"],
+        sentinel_handlers["expense"],
+        sentinel_handlers["menu"],
+        sentinel_handlers["account"],
+        sentinel_handlers["assets"],
+    ]
     assert isinstance(app.handlers[-1], CallbackQueryHandler)
     assert app.handlers[-1].callback is main.handle_callback
+
+
+def _callbacks(handlers):
+    return [handler.callback for handler in handlers]
+
+
+def test_quick_menu_button_is_handled_in_all_active_conversation_states():
+    expense_states = [
+        SELECT_ORIGIN,
+        ENTER_AMOUNT_DESC,
+        SELECT_DESTINATION,
+        ENTER_NEW_DEST_NAME,
+        SELECT_CATEGORY,
+        SELECT_BUDGET,
+        SELECT_BILL,
+        ENTER_TAGS,
+        CONFIRM_EXPENSE,
+    ]
+    for state in expense_states:
+        assert menu.cancel_to_menu in _callbacks(expense.expense_conv.states[state])
+
+    income_states = [INCOME_SELECT_DESTINATION, INCOME_ENTER_AMOUNT_DESC, INCOME_CONFIRM]
+    for state in income_states:
+        assert menu.cancel_to_menu in _callbacks(income.income_conv.states[state])
+
+    transfer_states = [
+        TRANSFER_ENTER_AMOUNT,
+        TRANSFER_SELECT_SOURCE,
+        TRANSFER_SELECT_DESTINATION,
+        TRANSFER_CONFIRM,
+    ]
+    for state in transfer_states:
+        assert menu.cancel_to_menu in _callbacks(transfer.transfer_conv.states[state])
+
+
+def test_quick_expense_button_is_handled_in_all_active_conversation_states():
+    expense_states = [
+        SELECT_ORIGIN,
+        ENTER_AMOUNT_DESC,
+        SELECT_DESTINATION,
+        ENTER_NEW_DEST_NAME,
+        SELECT_CATEGORY,
+        SELECT_BUDGET,
+        SELECT_BILL,
+        ENTER_TAGS,
+        CONFIRM_EXPENSE,
+    ]
+    for state in expense_states:
+        assert expense.start_expense_button in _callbacks(expense.expense_conv.states[state])
+
+    income_states = [INCOME_SELECT_DESTINATION, INCOME_ENTER_AMOUNT_DESC, INCOME_CONFIRM]
+    for state in income_states:
+        assert cancel_current_flow_for_expense_shortcut in _callbacks(
+            income.income_conv.states[state]
+        )
+
+    transfer_states = [
+        TRANSFER_ENTER_AMOUNT,
+        TRANSFER_SELECT_SOURCE,
+        TRANSFER_SELECT_DESTINATION,
+        TRANSFER_CONFIRM,
+    ]
+    for state in transfer_states:
+        assert cancel_current_flow_for_expense_shortcut in _callbacks(
+            transfer.transfer_conv.states[state]
+        )
 
 
 def test_main_builds_application_and_runs_polling(monkeypatch):

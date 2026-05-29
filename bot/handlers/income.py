@@ -17,10 +17,14 @@ from telegram.ext import (
 from bot.client import create_transaction, get_accounts
 from bot.config import OCULTAR_CUENTAS_LOWER, TIMEZONE
 from bot.constants import (
+    EXPENSE_BUTTON_PATTERN,
     INCOME_CONFIRM,
     INCOME_ENTER_AMOUNT_DESC,
     INCOME_SELECT_DESTINATION,
+    MENU_BUTTON_PATTERN,
 )
+from bot.handlers.common import cancel_current_flow_for_expense_shortcut
+from bot.handlers.menu import cancel_to_menu
 from bot.middleware import require_auth, sanitize_text, validate_amount
 
 logger = logging.getLogger(__name__)
@@ -210,17 +214,43 @@ income_conv = ConversationHandler(
     entry_points=[CallbackQueryHandler(start_income_button, pattern="^menu_income$")],
     states={
         INCOME_SELECT_DESTINATION: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(
+                filters.Regex(EXPENSE_BUTTON_PATTERN),
+                cancel_current_flow_for_expense_shortcut,
+            ),
             CallbackQueryHandler(select_income_destination, pattern="^income_dest::"),
         ],
         INCOME_ENTER_AMOUNT_DESC: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(
+                filters.Regex(EXPENSE_BUTTON_PATTERN),
+                cancel_current_flow_for_expense_shortcut,
+            ),
             MessageHandler(filters.TEXT & ~filters.COMMAND, enter_income_amount_description),
         ],
         INCOME_CONFIRM: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(
+                filters.Regex(EXPENSE_BUTTON_PATTERN),
+                cancel_current_flow_for_expense_shortcut,
+            ),
             CallbackQueryHandler(confirm_income, pattern="^confirm_income$"),
         ],
     },
     fallbacks=[
         CommandHandler("cancel", cancel_income),
+        CommandHandler("start", cancel_to_menu),
+        CommandHandler("menu", cancel_to_menu),
+        CommandHandler(
+            "expenseButton",
+            cancel_current_flow_for_expense_shortcut,
+        ),
+        MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+        MessageHandler(
+            filters.Regex(EXPENSE_BUTTON_PATTERN),
+            cancel_current_flow_for_expense_shortcut,
+        ),
         CallbackQueryHandler(cancel_income, pattern="^cancelar_ingreso$"),
     ],
     per_chat=True,
