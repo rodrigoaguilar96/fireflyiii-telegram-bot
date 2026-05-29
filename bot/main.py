@@ -36,10 +36,10 @@ def _validate_startup():
 def _register_handlers(app):
     """Register conversation handlers first and the callback catch-all last."""
     for handler in (
-        menu_handlers
-        + expense_handlers
-        + income_handlers
+        income_handlers
         + transfer_handlers
+        + expense_handlers
+        + menu_handlers
         + account_handlers
         + assets_handlers
     ):

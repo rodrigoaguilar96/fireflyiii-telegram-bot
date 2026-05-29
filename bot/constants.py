@@ -1,7 +1,11 @@
+import re
+
 from telegram.ext import ConversationHandler
 
 MENU_BUTTON_TEXT = "📋 Menú"
 EXPENSE_BUTTON_TEXT = "💸 Registrar gasto"
+MENU_BUTTON_PATTERN = f"^{re.escape(MENU_BUTTON_TEXT)}$"
+EXPENSE_BUTTON_PATTERN = f"^{re.escape(EXPENSE_BUTTON_TEXT)}$"
 
 # Conversation states for expense flow
 SELECT_ORIGIN, ENTER_AMOUNT_DESC, SELECT_DESTINATION, ENTER_NEW_DEST_NAME = range(4)

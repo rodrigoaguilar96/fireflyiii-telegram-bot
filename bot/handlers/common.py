@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 
 from bot.client import get_accounts, safe_get
 
@@ -77,3 +77,16 @@ async def list_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, parse_mode="Markdown")
     elif update.callback_query:
         await update.callback_query.message.reply_text(text, parse_mode="Markdown")
+
+
+async def cancel_current_flow_for_expense_shortcut(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    """End the current conversation before the expense shortcut starts a new flow."""
+    context.user_data.clear()
+    message = update.message or update.callback_query.message
+    await message.reply_text(
+        "Cancelé el flujo actual. Tocá 💸 Registrar gasto otra vez para empezar."
+    )
+    return ConversationHandler.END

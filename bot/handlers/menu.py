@@ -7,6 +7,7 @@ from telegram import (
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
+    ConversationHandler,
     ContextTypes,
     MessageHandler,
     filters,
@@ -15,7 +16,11 @@ from telegram.ext import (
 from bot.handlers.common import list_commands
 from bot.handlers.assets import show_assets
 from bot.handlers import subscriptions
-from bot.constants import EXPENSE_BUTTON_TEXT, MENU_BUTTON_TEXT
+from bot.constants import (
+    EXPENSE_BUTTON_TEXT,
+    MENU_BUTTON_PATTERN,
+    MENU_BUTTON_TEXT,
+)
 from bot.middleware import require_auth
 
 
@@ -51,6 +56,13 @@ async def start_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cancel_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """End an active conversation and show the main menu."""
+    context.user_data.clear()
+    await start_menu(update, context)
+    return ConversationHandler.END
+
+
 async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await require_auth(update, context):
         return
@@ -75,7 +87,7 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
 menu_handlers = [
     CommandHandler("start", start_menu),
     CommandHandler("menu", start_menu),
-    MessageHandler(filters.Regex(f"^{MENU_BUTTON_TEXT}$"), start_menu),
+    MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), start_menu),
     # `menu_expense`, `menu_income`, and `menu_transfer` are intentionally handled by
     # ConversationHandlers so the dedicated flows own their state transitions.
     CallbackQueryHandler(handle_menu_selection, pattern="^(menu_assets|menu_cuenta|menu_commands|menu_subscriptions)$")

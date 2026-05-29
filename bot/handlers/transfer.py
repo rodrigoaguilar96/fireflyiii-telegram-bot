@@ -15,11 +15,15 @@ from telegram.ext import (
 from bot.client import create_transaction, get_accounts
 from bot.config import OCULTAR_CUENTAS_LOWER, TIMEZONE
 from bot.constants import (
+    EXPENSE_BUTTON_PATTERN,
+    MENU_BUTTON_PATTERN,
     TRANSFER_CONFIRM,
     TRANSFER_ENTER_AMOUNT,
     TRANSFER_SELECT_DESTINATION,
     TRANSFER_SELECT_SOURCE,
 )
+from bot.handlers.common import cancel_current_flow_for_expense_shortcut
+from bot.handlers.menu import cancel_to_menu
 from bot.middleware import require_auth, validate_amount
 
 logger = logging.getLogger(__name__)
@@ -247,20 +251,51 @@ transfer_conv = ConversationHandler(
     ],
     states={
         TRANSFER_ENTER_AMOUNT: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(
+                filters.Regex(EXPENSE_BUTTON_PATTERN),
+                cancel_current_flow_for_expense_shortcut,
+            ),
             MessageHandler(filters.TEXT & ~filters.COMMAND, enter_amount),
         ],
         TRANSFER_SELECT_SOURCE: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(
+                filters.Regex(EXPENSE_BUTTON_PATTERN),
+                cancel_current_flow_for_expense_shortcut,
+            ),
             CallbackQueryHandler(select_source, pattern="^transfer_source::"),
         ],
         TRANSFER_SELECT_DESTINATION: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(
+                filters.Regex(EXPENSE_BUTTON_PATTERN),
+                cancel_current_flow_for_expense_shortcut,
+            ),
             CallbackQueryHandler(select_destination, pattern="^transfer_destination::"),
         ],
         TRANSFER_CONFIRM: [
+            MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+            MessageHandler(
+                filters.Regex(EXPENSE_BUTTON_PATTERN),
+                cancel_current_flow_for_expense_shortcut,
+            ),
             CallbackQueryHandler(confirm_transfer, pattern="^confirm_transfer$"),
         ],
     },
     fallbacks=[
         CommandHandler("cancel", cancel_transfer),
+        CommandHandler("start", cancel_to_menu),
+        CommandHandler("menu", cancel_to_menu),
+        CommandHandler(
+            "expenseButton",
+            cancel_current_flow_for_expense_shortcut,
+        ),
+        MessageHandler(filters.Regex(MENU_BUTTON_PATTERN), cancel_to_menu),
+        MessageHandler(
+            filters.Regex(EXPENSE_BUTTON_PATTERN),
+            cancel_current_flow_for_expense_shortcut,
+        ),
         CallbackQueryHandler(cancel_transfer, pattern="^cancel_transfer$"),
     ],
     per_chat=True,
